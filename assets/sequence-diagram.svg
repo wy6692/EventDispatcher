@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 760" width="100%" height="100%">
+  <defs>
+    <linearGradient id="seqBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f17"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="partGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1f293d"/>
+      <stop offset="100%" stop-color="#141d2e"/>
+    </linearGradient>
+    <filter id="boxShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.5"/>
+    </filter>
+    <marker id="arrowSeq" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#60a5fa"/>
+    </marker>
+    <marker id="arrowGreenSeq" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#34d399"/>
+    </marker>
+    <marker id="arrowOrangeSeq" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#fb923c"/>
+    </marker>
+  </defs>
+
+  <style>
+    .th-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-size: 13px; font-weight: 600; fill: #f3f4f6; }
+    .th-sub { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 10px; fill: #94a3b8; }
+    .step-num { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; font-weight: 700; fill: #38bdf8; }
+    .msg-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-size: 11px; fill: #e2e8f0; }
+    .note-title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; font-weight: 600; fill: #93c5fd; }
+    .note-desc { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 10px; fill: #cbd5e1; }
+  </style>
+
+  <!-- 背景 -->
+  <rect width="1080" height="760" rx="12" fill="url(#seqBg)"/>
+  <rect width="1080" height="760" rx="12" fill="none" stroke="#1e293b" stroke-width="1.5"/>
+
+  <!-- 顶部标题 -->
+  <text x="40" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="15" font-weight="700" fill="#ffffff" letter-spacing="0.5">EventDispatcher</text>
+  <text x="175" y="38" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="12" fill="#9ca3af">| 系统全生命周期时序交互模型 (Sequence Diagram)</text>
+
+  <!-- 参与者泳道头部 (Participants) -->
+  <!-- 1. 微信用户 X: 110 -->
+  <g transform="translate(40, 60)">
+    <rect width="140" height="42" rx="6" fill="url(#partGrad)" stroke="#3b82f6" stroke-width="1.2" filter="url(#boxShadow)"/>
+    <text x="70" y="22" text-anchor="middle" class="th-title">微信用户</text>
+    <text x="70" y="34" text-anchor="middle" class="th-sub">End User</text>
+  </g>
+  <!-- 2. 微信推送服务器 X: 310 -->
+  <g transform="translate(240, 60)">
+    <rect width="140" height="42" rx="6" fill="#13231b" stroke="#059669" stroke-width="1.2" filter="url(#boxShadow)"/>
+    <text x="70" y="22" text-anchor="middle" class="th-title" fill="#a7f3d0">微信服务器</text>
+    <text x="70" y="34" text-anchor="middle" class="th-sub" fill="#6ee7b7">WeChat Server</text>
+  </g>
+  <!-- 3. EventDispatcher 网关 X: 540 -->
+  <g transform="translate(460, 60)">
+    <rect width="160" height="42" rx="6" fill="url(#partGrad)" stroke="#38bdf8" stroke-width="1.5" filter="url(#boxShadow)"/>
+    <text x="80" y="22" text-anchor="middle" class="th-title" fill="#e0f2fe">EventDispatcher</text>
+    <text x="80" y="34" text-anchor="middle" class="th-sub" fill="#38bdf8">网关中间件核心</text>
+  </g>
+  <!-- 4. SQLite 持久化 X: 740 -->
+  <g transform="translate(670, 60)">
+    <rect width="140" height="42" rx="6" fill="#18181b" stroke="#6366f1" stroke-width="1.2" filter="url(#boxShadow)"/>
+    <text x="70" y="22" text-anchor="middle" class="th-title" fill="#c7d2fe">SQLite (WAL)</text>
+    <text x="70" y="34" text-anchor="middle" class="th-sub" fill="#a5b4fc">单连接写隔离存储</text>
+  </g>
+  <!-- 5. 下游订阅系统 X: 940 -->
+  <g transform="translate(860, 60)">
+    <rect width="160" height="42" rx="6" fill="url(#partGrad)" stroke="#3b82f6" stroke-width="1.2" filter="url(#boxShadow)"/>
+    <text x="80" y="22" text-anchor="middle" class="th-title" fill="#93c5fd">下游业务系统</text>
+    <text x="80" y="34" text-anchor="middle" class="th-sub">Subscribers (Webhooks)</text>
+  </g>
+
+  <!-- 垂直虚线生命线 (Lifelines) -->
+  <line x1="110" y1="102" x2="110" y2="720" stroke="#334155" stroke-width="1" stroke-dasharray="4 4"/>
+  <line x1="310" y1="102" x2="310" y2="720" stroke="#334155" stroke-width="1" stroke-dasharray="4 4"/>
+  <line x1="540" y1="102" x2="540" y2="720" stroke="#38bdf8" stroke-width="1.2" stroke-dasharray="4 4"/>
+  <line x1="740" y1="102" x2="740" y2="720" stroke="#334155" stroke-width="1" stroke-dasharray="4 4"/>
+  <line x1="940" y1="102" x2="940" y2="720" stroke="#334155" stroke-width="1" stroke-dasharray="4 4"/>
+
+  <!-- ================= 阶段 1: 首次接入端点验证 (GET) ================= -->
+  <g transform="translate(50, 115)">
+    <rect width="980" height="125" rx="6" fill="#131c2e" stroke="#1e293b" stroke-width="1"/>
+    <rect x="12" y="10" width="130" height="20" rx="3" fill="#1e293b"/>
+    <text x="77" y="24" text-anchor="middle" class="note-title">阶段一：微信端点验证</text>
+
+    <!-- 微信 -> ED: GET /w/main -->
+    <line x1="260" y1="50" x2="480" y2="50" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrowSeq)"/>
+    <text x="370" y="44" text-anchor="middle" class="msg-text">01. GET /w/main (signature, timestamp, nonce, echostr)</text>
+
+    <!-- ED 内部自处理 -->
+    <rect x="490" y="58" width="100" height="28" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="0.8"/>
+    <text x="540" y="76" text-anchor="middle" class="th-sub" fill="#38bdf8">校验 SHA1 / 解密</text>
+
+    <!-- ED -> 微信: 返回 echostr -->
+    <line x1="480" y1="100" x2="260" y2="100" stroke="#34d399" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrowGreenSeq)"/>
+    <text x="370" y="94" text-anchor="middle" class="msg-text" fill="#34d399">02. 200 OK: 响应原始 echostr 文本</text>
+  </g>
+
+  <!-- ================= 阶段 2: 运行时事件推送与极速应答 (POST) ================= -->
+  <g transform="translate(50, 255)">
+    <rect width="980" height="230" rx="6" fill="#131c2e" stroke="#1e293b" stroke-width="1"/>
+    <rect x="12" y="10" width="145" height="20" rx="3" fill="#1e293b"/>
+    <text x="84" y="24" text-anchor="middle" class="note-title">阶段二：事件接收与毫秒应答</text>
+
+    <!-- 用户 -> 微信 -->
+    <line x1="60" y1="46" x2="250" y2="46" stroke="#e2e8f0" stroke-width="1.5" marker-end="url(#arrowSeq)"/>
+    <text x="155" y="40" text-anchor="middle" class="msg-text">03. 用户触发关注 / 点击菜单</text>
+
+    <!-- 微信 -> ED: POST /w/main -->
+    <line x1="260" y1="76" x2="480" y2="76" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrowSeq)"/>
+    <text x="370" y="70" text-anchor="middle" class="msg-text">04. POST /w/main (XML 明文/密文报文)</text>
+
+    <!-- ED 内部编排 -->
+    <rect x="490" y="86" width="100" height="42" rx="4" fill="#0f172a" stroke="#38bdf8" stroke-width="0.8"/>
+    <text x="540" y="102" text-anchor="middle" class="th-sub" fill="#38bdf8">1. 验签与 AES 解密</text>
+    <text x="540" y="118" text-anchor="middle" class="th-sub" fill="#38bdf8">2. 消息去重计算</text>
+
+    <!-- ED -> DB: 持久化 -->
+    <line x1="490" y1="140" x2="680" y2="140" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrowSeq)"/>
+    <text x="585" y="134" text-anchor="middle" class="msg-text">05. 保存 Event 并生成 Delivery 任务</text>
+
+    <!-- DB -> ED: 确认写入 -->
+    <line x1="680" y1="164" x2="490" y2="164" stroke="#60a5fa" stroke-width="1" stroke-dasharray="3 3" marker-end="url(#arrowSeq)"/>
+    <text x="585" y="158" text-anchor="middle" class="th-sub">写入完成 (事务提交)</text>
+
+    <!-- ED -> 微信: 立即回复 success (断开连接) -->
+    <line x1="480" y1="195" x2="260" y2="195" stroke="#34d399" stroke-width="2" marker-end="url(#arrowGreenSeq)"/>
+    <text x="370" y="188" text-anchor="middle" class="msg-text" fill="#34d399">06. 立即回复 "success" (典型耗时 &lt; 15ms)</text>
+  </g>
+
+  <!-- ================= 阶段 3: 后台 Worker 调度广播与指数退避 ================= -->
+  <g transform="translate(50, 500)">
+    <rect width="980" height="200" rx="6" fill="#131c2e" stroke="#1e293b" stroke-width="1"/>
+    <rect x="12" y="10" width="160" height="20" rx="3" fill="#1e293b"/>
+    <text x="92" y="24" text-anchor="middle" class="note-title">阶段三：后台异步投递与重试</text>
+
+    <!-- ED 内部 Worker 从 DB 抢占到期任务 -->
+    <line x1="490" y1="46" x2="680" y2="46" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrowSeq)"/>
+    <text x="585" y="40" text-anchor="middle" class="msg-text">07. 抢占到期待投递任务 (ClaimDue)</text>
+
+    <!-- 投递下游 1: 成功链路 -->
+    <line x1="490" y1="80" x2="880" y2="80" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrowGreenSeq)"/>
+    <text x="685" y="74" text-anchor="middle" class="msg-text" fill="#a7f3d0">08. POST /webhook (JSON + X-Dispatcher-Signature)</text>
+
+    <line x1="880" y1="104" x2="490" y2="104" stroke="#34d399" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrowGreenSeq)"/>
+    <text x="685" y="98" text-anchor="middle" class="msg-text" fill="#34d399">09. 响应 200 OK (标记任务为 success)</text>
+
+    <!-- 投递下游 2: 失败退避重试链路 -->
+    <line x1="490" y1="138" x2="880" y2="138" stroke="#fb923c" stroke-width="1.5" marker-end="url(#arrowOrangeSeq)"/>
+    <text x="685" y="132" text-anchor="middle" class="msg-text" fill="#fdba74">10. POST /webhook (下游临时故障 / 超时)</text>
+
+    <line x1="880" y1="162" x2="490" y2="162" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="3 3" marker-end="url(#arrowSeq)"/>
+    <text x="685" y="156" text-anchor="middle" class="msg-text" fill="#f87171">11. 响应 500 / 超时 -> 计算指数退避间隔 (1s, 5s, 30s, 2m, 10m)</text>
+  </g>
+</svg>

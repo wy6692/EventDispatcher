@@ -29,41 +29,9 @@
 
 ## 1. 系统时序交互模型
 
-```mermaid
-sequenceDiagram
-    autonumber
-    actor User as 微信用户
-    participant WeChat as 微信推送服务器
-    participant ED as EventDispatcher
-    participant DB as SQLite (WAL 模式)
-    participant SubA as 菜单服务 (下游 A)
-    participant SubB as 审计服务 (下游 B)
-
-    Note over WeChat,ED: 微信端点配置初次验证
-    WeChat->>ED: GET /w/main?signature=...&timestamp=...&nonce=...&echostr=...
-    ED->>ED: 验证微信 Token 签名 / 解密 echostr
-    ED-->>WeChat: 返回原始 echostr 文本
-
-    Note over User,SubB: 运行时事件异步广播
-    User->>WeChat: 触发关注 / 点击自定义菜单
-    WeChat->>ED: POST /w/main (XML 明文或 AES 密文)
-    ED->>ED: 1. 验签与 AES 解密<br/>2. 消息去重计算<br/>3. 转成统一标准 JSON
-    ED->>DB: 持久化 Event，并按 Filter 规则批量生成 Delivery 记录
-    ED-->>WeChat: 立即回复文本 "success" (耗时通常 < 15ms)
-
-    Note over ED,SubB: 异步 Worker 调度与重试
-    loop 异步调度
-        ED->>SubA: POST /callback (携带 X-Dispatcher-Signature)
-        SubA-->>ED: 200 OK
-        ED->>SubB: POST /callback (携带 X-Dispatcher-Signature)
-        alt 下游成功响应 2xx
-            SubB-->>ED: 200 OK
-        else 下游网络超时或返回 5xx/4xx
-            SubB-->>ED: 500 Internal Server Error
-            ED->>DB: 记录异常日志，计算下一次指数退避重试时间
-        end
-    end
-```
+<p align="center">
+  <img src="../assets/sequence-diagram.svg" alt="EventDispatcher Sequence Diagram" width="100%">
+</p>
 
 ---
 
