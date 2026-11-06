@@ -1,4 +1,4 @@
-.PHONY: all build test clean run docker-build docker-up docker-down lint
+.PHONY: all build test clean run simulate docker-build docker-up docker-down lint
 
 APP_NAME := dispatcher
 BIN_DIR := bin
@@ -21,6 +21,11 @@ run:
 clean:
 	@echo "==> Cleaning build artifacts..."
 	@rm -rf $(BIN_DIR)
+
+simulate:
+	@echo "==> Building and running simulator..."
+	@go build -o $(BIN_DIR)/simulate ./cmd/simulate
+	@$(BIN_DIR)/simulate
 
 docker-build:
 	@echo "==> Building Docker image..."
