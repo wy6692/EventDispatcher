@@ -1,9 +1,7 @@
-# syntax=docker/dockerfile:1
-
 # -------------------------------------------------------------
 # Stage 1: Build binary
 # -------------------------------------------------------------
-FROM golang:1.22-alpine AS builder
+FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/golang:1.22-alpine AS builder
 
 WORKDIR /app
 
@@ -26,7 +24,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 # -------------------------------------------------------------
 # Stage 2: Runtime image
 # -------------------------------------------------------------
-FROM alpine:3.20
+FROM swr.cn-north-4.myhuaweicloud.com/ddn-k8s/docker.io/library/alpine:3.20
 
 WORKDIR /app
 
@@ -35,12 +33,20 @@ COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /usr/share/zoneinfo /usr/share/zoneinfo
 COPY --from=builder /app/bin/dispatcher /app/dispatcher
 
-# 创建数据卷挂载点并建立非 root 用户
-RUN addgroup -S appgroup && adduser -S appuser -G appgroup \
+# 创建数据卷挂载点并建立非 root 用户。
+# 挂载宿主机目录会盖掉镜像内的属主，入口脚本在启动时再修正权限。
+RUN apk add --no-cache su-exec \
+    && addgroup -S appgroup && adduser -S appuser -G appgroup \
     && mkdir -p /app/data \
-    && chown -R appuser:appgroup /app
-
-USER appuser
+    && chown -R appuser:appgroup /app \
+    && printf '%s\n' \
+        '#!/bin/sh' \
+        'set -eu' \
+        'mkdir -p /app/data' \
+        'chown -R appuser:appgroup /app/data' \
+        'exec su-exec appuser:appgroup /app/dispatcher' \
+        > /docker-entrypoint.sh \
+    && chmod 755 /docker-entrypoint.sh
 
 ENV ADDR=":8080" \
     DB_PATH="/app/data/dispatcher.db" \
@@ -53,4 +59,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 VOLUME ["/app/data"]
 
-ENTRYPOINT ["/app/dispatcher"]
+ENTRYPOINT ["/docker-entrypoint.sh"]
