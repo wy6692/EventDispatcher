@@ -1,91 +1,81 @@
 <div align="center">
 
-# EventDispatcher
+  <img src="assets/logo.svg" alt="EventDispatcher Logo" width="96" height="96">
 
-**企业级微信公众号事件/消息统一网关与异步分发中间件**
+  <h1>EventDispatcher</h1>
 
-<p align="center">
-  <img src="assets/badges/go-version.svg" alt="Go Version">
-  <img src="assets/badges/build-status.svg" alt="Build Status">
-  <img src="assets/badges/code-quality.svg" alt="Code Quality">
-  <img src="assets/badges/license.svg" alt="License">
-  <img src="assets/badges/docker.svg" alt="Docker Ready">
-  <img src="assets/badges/storage.svg" alt="SQLite Pure Go">
-</p>
+  <p><strong>企业级微信公众号事件与消息统一分发网关</strong></p>
+  <p>突破微信单一回调限制，解耦多业务系统消费，内置规则过滤、可靠投递与管理控制台。</p>
 
-<p align="center">
-  <a href="#系统架构">系统架构</a> &bull;
-  <a href="#核心特性">核心特性</a> &bull;
-  <a href="#快速开始">快速开始</a> &bull;
-  <a href="#接入与配置流程">接入指南</a> &bull;
-  <a href="docs/api.md">API 规范</a> &bull;
-  <a href="AGENT.md">开发规范</a>
-</p>
+  <p align="center">
+    <img src="assets/badges/go-version.svg" alt="Go Version">
+    <img src="assets/badges/build-status.svg" alt="Build Status">
+    <img src="assets/badges/code-quality.svg" alt="Code Quality">
+    <img src="assets/badges/license.svg" alt="License">
+    <img src="assets/badges/docker.svg" alt="Docker Ready">
+    <img src="assets/badges/storage.svg" alt="SQLite Pure Go">
+  </p>
+
+  <p align="center">
+    <a href="#快速上手">快速上手</a> &bull;
+    <a href="#开箱即用的-web-控制台">控制台展示</a> &bull;
+    <a href="#核心特性">核心特性</a> &bull;
+    <a href="#架构速览">系统架构</a> &bull;
+    <a href="#文档中心">完整文档</a>
+  </p>
 
 </div>
 
 ---
 
-## 项目背景与解决的问题
+## 控制台概览
 
-在微信公众号（服务号/订阅号）开发与运营过程中，微信公众平台**仅允许配置一个“服务器配置 URL”**。
+EventDispatcher 内置开箱即用的现代化暗黑管理控制台，由 Go 单二进制原生嵌入，**零外部前端依赖**：
 
-在实际企业级业务场景中，往往有多个独立的系统需要实时消费微信上报的事件：
-- 自定义菜单系统：处理用户点击与菜单事件交互；
-- 行为与合规审计系统：归档用户关注、取关、地理位置上报等全量交互日志；
-- CRM / 营销系统：识别带参数关注二维码的场景值并自动分发权益；
-- 客服业务系统：接收用户上行的文字、图片与语音消息。
-
-### 传统方案对比
-
-| 对比维度 | 传统单体代转发方案 | EventDispatcher 网关方案 |
-| :--- | :--- | :--- |
-| **系统耦合度** | 下游服务强依赖特定转发服务，链路冗长 | 各业务系统完全独立，按需注册订阅 |
-| **单点风险** | 转发服务故障将导致全公司微信业务瘫痪 | 核心网关极简设计，内存与存储双重持久化 |
-| **凭据安全** | 微信 Token/AES 密钥散落在各业务系统 | 微信通信密钥仅保存在网关，下游完全隔离 |
-| **微信响应时效** | 链路多级透传，极易触发微信 5 秒超时重试 | 收到请求立即落库并回复 `success`（< 15ms） |
-| **可靠性保证** | 依赖业务端自行实现重试与防重 | 网关内置全局幂等去重与指数退避重试调度 |
+<p align="center">
+  <img src="assets/dashboard-preview.svg" alt="EventDispatcher Web Console Showcase" width="100%">
+</p>
 
 ---
 
-## 系统架构
+## 解决的业务痛点
 
-<p align="center">
-  <img src="assets/architecture.svg" alt="EventDispatcher System Architecture" width="100%">
-</p>
+微信公众平台仅允许配置 **一个服务器地址 (URL)**，但在企业实际落地中，多个系统往往需要消费微信事件：
+- 自定义菜单系统（响应特定 CLICK 事件）；
+- 渠道与用户增长中心（识别带参二维码关注归因）；
+- 智能客服与工单系统（消费普通文本、图片与语音消息）；
+- 安全合规与全量审计系统（归档所有交互日志）。
+
+| 痛点场景 | 传统单体转发方案 | EventDispatcher 网关方案 |
+| :--- | :--- | :--- |
+| **系统耦合度** | 下游系统强依赖单一转发层，变更风险大 | 业务系统独立解耦，按需注册 Webhook 订阅 |
+| **微信响应时效** | 链路多级同步透传，极易触发 5 秒超时 | 收到推送后立即落库并回复 `success`（< 15ms） |
+| **凭据安全** | 微信 Token/AES 密钥散落在各业务方 | 微信凭据仅由网关托管，下游出站采用 HMAC 验签 |
+| **可靠性保证** | 业务端自行实现重试与去重，极易丢失事件 | 内置全局幂等去重与指数退避重试调度引擎 |
 
 ---
 
 ## 核心特性
 
-- **完整支持微信加解密协议**：支持明文模式、兼容模式与安全模式（AES-256-CBC），自动完成 PKCS#7 逆填充与消息解析。
-- **高吞吐与极速响应**：接收到微信推送后即刻持久化并输出 `success`（典型处理耗时小于 15ms），下游投递完全异步化。
-- **灵活的路由过滤机制**：各订阅方可独立配置过滤规则（`msgTypes`、`events`、`eventKeyPrefixes`），精准分发所需事件。
-- **可靠的阶梯重试调度**：下游返回非 2xx 或请求超时时，自动按阶梯间隔退避重试（最多 6 次，间隔约 1s、5s、30s、2m、10m），支持手动触发重放。
-- **企业级架构与安全设计**：
-  - 遵循标准 Clean Architecture 分层，业务逻辑与外部框架彻底解耦；
-  - 管理后台接口采用 Bearer Token 恒定时间比较（Constant Time Compare），抵御时序攻击；
-  - 微信密钥与订阅 Secret 在查询接口中完全脱敏，仅返回设置状态布尔值，杜绝明文回显；
-  - 下游投递采用标准的 HMAC-SHA256 签名算法；
-  - 全链路 TraceID 追踪贯穿。
-- **零外部中间件依赖**：基于纯 Go 驱动的 SQLite（无 CGO），单个二进制文件即可运行，极简运维与备份。
+- **协议兼容完备**：完整支持明文模式、兼容模式及安全模式（AES-256-CBC），自动完成 PKCS#7 逆填充与解析。
+- **高并发极速响应**：毫秒级持久化并向微信输出 `success`，业务分发由后台 Worker 异步调度，彻底杜绝超时重推。
+- **声明式规则路由**：各订阅方支持通过 JSON Filter 精准过滤（`msgTypes`、`events`、`eventKeyPrefixes`）。
+- **可靠的阶梯重试**：下游返回非 2xx 或请求超时时，自动按阶梯间隔退避重试（最多 6 轮），支持一键手动重放。
+- **零外部运维依赖**：基于纯 Go 实现的嵌入式 SQLite（开启 WAL 模式），单二进制文件即可运行，无需 MySQL 或 Redis。
+- **工业级安全设计**：管理接口采用恒定时间 Token 校验，出站消息支持 HMAC-SHA256 签名，接口敏感字段零明文泄露。
 
 ---
 
-## 快速开始
+## 快速上手
 
-### 方式一：源码编译与运行
+### 方式一：源码编译与本地启动
 
-#### 环境要求
-- Go 1.22 或更高版本
-
-#### 操作步骤
 ```bash
-# 1. 克隆代码库
-git clone https://github.com/your-org/EventDispatcher.git
+# 1. 克隆代码仓库
+git clone https://github.com/wy6692/EventDispatcher.git
 cd EventDispatcher
 
-# 2. 设置环境变量并启动
+# 2. 设置管理员口令并启动
 export ADMIN_TOKEN="your-secure-admin-token"
 export ADDR=":8080"
 export DB_PATH="data/dispatcher.db"
@@ -93,181 +83,42 @@ export DB_PATH="data/dispatcher.db"
 go run ./cmd/dispatcher
 ```
 
-### 方式二：Docker 容器化部署
+### 方式二：Docker Compose 一键部署
 
 ```bash
 docker compose up -d
 ```
 
-默认数据持久化目录映射至当前目录的 `./data`。
-
----
-
-## 开箱即用的 Web 管理控制台
-
-服务启动后，直接在浏览器中打开：
-`http://localhost:8080/ui` （或直接访问根路径 `http://localhost:8080/` 自动跳转）。
-
-控制台由 Go 二进制程序使用 `embed` 原生内嵌，无需配置任何 Node.js、Nginx 或外部前端依赖，开箱即用：
-- **服务号可视化管理**：新增、编辑、删除服务号，一键复制微信后台服务器接入 URL；
-- **订阅方与路由规则配置**：配置下游 Webhook 地址，设置超时与退避轮次，可视化配置 JSON 过滤规则；
-- **实时微信事件流水**：分页检索网关接收到的全部微信事件，一键弹窗查看与复制格式化 Payload JSON；
-- **投递调度监控与一键重放**：实时监控各订阅方任务状态机（成功、失败、待重试），针对失败任务支持一键手动触发重试重放；
-- **安全与凭据保护**：界面支持输入并本地记忆 `ADMIN_TOKEN`，所有查询接口敏感密钥零明文回显。
-
----
-
-## 配置说明
-
-系统参数通过环境变量配置，业务参数通过数据接口持久化管理：
-
-| 环境变量 | 必填 | 默认值 | 说明 |
-| :--- | :---: | :---: | :--- |
-| `ADMIN_TOKEN` | 是 | - | 管理后台接口鉴权口令（Bearer Token） |
-| `ADDR` | 否 | `:8080` | HTTP 服务监听地址与端口 |
-| `DB_PATH` | 否 | `data/dispatcher.db` | SQLite 数据库文件存放路径 |
-
----
-
-## 接入与配置流程
-
-### 1. 登记微信服务号
-
-```bash
-curl -X POST http://127.0.0.1:8080/admin/accounts \
-  -H "Authorization: Bearer your-secure-admin-token" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "企业官方服务号",
-    "accountKey": "main",
-    "appId": "wx1234567890abcdef",
-    "token": "your-wechat-token",
-    "encodingAesKey": "abcdefghijklmnopqrstuvwxyz0123456789ABCDEFG"
-  }'
-```
-记录返回结果中 `data.id` 字段（如 `acc_01JBN...`）。
-
-### 2. 在微信公众平台后台配置服务器地址
-
-前往微信公众平台后台 -> **设置与开发** -> **基本配置** -> **服务器配置**：
-- **URL**：`https://<你的域名>/w/main`
-- **Token**：与登记的 `token` 一致
-- **EncodingAESKey**：与登记的 `encodingAesKey` 一致
-- **加解密模式**：支持明文模式、兼容模式或安全模式
-
-提交后，EventDispatcher 会自动响应 `GET /w/main` 校验请求并回显 `echostr`。
-
-### 3. 配置下游订阅方
-
-#### 示例 A：菜单交互系统（仅接收菜单点击事件）
-```bash
-curl -X POST http://127.0.0.1:8080/admin/subscribers \
-  -H "Authorization: Bearer your-secure-admin-token" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "菜单业务程序",
-    "accountId": "acc_你的账号ID",
-    "callbackUrl": "https://service.internal/webhook/menu",
-    "secret": "menu-service-secret",
-    "filter": {
-      "msgTypes": ["event"],
-      "events": ["CLICK"],
-      "eventKeyPrefixes": ["MENU_"]
-    }
-  }'
-```
-
-#### 示例 B：全量事件审计系统（接收全部消息与事件）
-```bash
-curl -X POST http://127.0.0.1:8080/admin/subscribers \
-  -H "Authorization: Bearer your-secure-admin-token" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "审计归档程序",
-    "accountId": "acc_你的账号ID",
-    "callbackUrl": "https://audit.internal/webhook/audit",
-    "secret": "audit-service-secret"
-  }'
+启动完成后，在浏览器中打开控制台即可开始配置：
+```text
+http://localhost:8080/ui/
 ```
 
 ---
 
-## 下游系统接收规范与验签
+## 架构速览
 
-分发中心通过 HTTP `POST` JSON 请求向订阅方投递事件。
+<p align="center">
+  <img src="assets/architecture.svg" alt="EventDispatcher Architecture" width="100%">
+</p>
 
-### 请求头信息
-```http
-Content-Type: application/json
-User-Agent: event-dispatcher/1
-X-Dispatcher-Event-Id: evt_01JBN6G...
-X-Dispatcher-Timestamp: 1730874600
-X-Dispatcher-Signature: 8b072d9e...
-```
-
-### 请求体结构
-```json
-{
-  "id": "evt_01JBN6G...",
-  "accountKey": "main",
-  "appId": "wx1234567890abcdef",
-  "msgType": "event",
-  "event": "CLICK",
-  "eventKey": "MENU_HELP",
-  "fromUser": "oXv6u0-dummy-openid",
-  "toUser": "gh_123456789abc",
-  "createTime": 1730874590,
-  "receivedAt": "2026-11-06T06:29:50Z",
-  "fields": {
-    "ToUserName": "gh_123456789abc",
-    "FromUserName": "oXv6u0-dummy-openid",
-    "CreateTime": "1730874590",
-    "MsgType": "event",
-    "Event": "CLICK",
-    "EventKey": "MENU_HELP"
-  }
-}
-```
-
-### 签名计算公式
-$$\text{Signature} = \text{hex}(\text{HMAC-SHA256}(\text{secret}, \text{timestamp} + \text{"."} + \text{rawBody}))$$
-
-> 验签时须直接使用接收到的**原始字节流（Raw Body）**，禁止反序列化后再重新序列化。完整的多语言（Go、Python、Java、Node.js、PHP）实现代码请参考 [接口文档 (docs/api.md)](docs/api.md)。
+- **接入层**：验证微信服务器合法性，毫秒级解密验签与快速应答；
+- **领域与编排层**：计算全局幂等指纹，通过规则过滤引擎精准生成投递任务；
+- **持久化层**：SQLite WAL 单写多读隔离，保证高并发读写零锁冲突；
+- **调度层**：抢占式后台 Worker 执行签名投递与指数退避重试。
 
 ---
 
-## 运维与故障排查
+## 文档中心
 
-### 1. 查询事件接收记录
-```bash
-curl -s http://127.0.0.1:8080/admin/events \
-  -H "Authorization: Bearer your-secure-admin-token"
-```
+详细的技术文档与使用指南请查阅 `docs/` 目录：
 
-### 2. 检索投递失败的任务
-```bash
-curl -s "http://127.0.0.1:8080/admin/deliveries?status=failed" \
-  -H "Authorization: Bearer your-secure-admin-token"
-```
-
-### 3. 手动触发失败任务重试
-```bash
-curl -X POST http://127.0.0.1:8080/admin/deliveries/dlv_目标ID/retry \
-  -H "Authorization: Bearer your-secure-admin-token"
-```
-
-### 4. 服务健康检查
-```bash
-curl -s http://127.0.0.1:8080/healthz
-# 正常响应: {"code":0,"message":"success","data":{"status":"ok"},"traceId":"..."}
-```
-
----
-
-## 相关文档
-
-- **[对外接口文档 (docs/api.md)](docs/api.md)**：包含完整的 Admin API 规范、下游 Webhook 详细定义及各语言 SDK 级验签示例。
-- **[开发者与 AI 协作规范 (AGENT.md)](AGENT.md)**：包含企业级整洁架构分层规范、注释与代码风格、SQLite 数据库并发军规、Git 提交与质量保障基线。
+- **[系统架构与流程时序 (docs/architecture.md)](docs/architecture.md)**：分层模型、WAL 并发控制与事件完整生命周期。
+- **[微信公众平台接入指南 (docs/wechat-setup.md)](docs/wechat-setup.md)**：微信开发者配置、Token 验证、多服务号隔离。
+- **[规则路由与过滤引擎 (docs/routing-rules.md)](docs/routing-rules.md)**：声明式 JSON Filter 语法与典型业务配置范式。
+- **[RESTful API 与验签规范 (docs/api.md)](docs/api.md)**：管理接口定义、出站 Webhook 载荷结构及多语言验签示例。
+- **[运维监控与排障手册 (docs/ops-guide.md)](docs/ops-guide.md)**：探活探针、SQLite 热备份、任务重试与排错指南。
+- **[开发与质量工程规范 (AGENT.md)](AGENT.md)**：Clean Architecture 分层约束、Git 提交与测试标准。
 
 ---
 

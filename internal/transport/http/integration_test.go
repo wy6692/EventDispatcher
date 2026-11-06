@@ -65,7 +65,7 @@ func TestEndToEndPipeline(t *testing.T) {
 	}
 	uiBody, _ := io.ReadAll(respUI.Body)
 	respUI.Body.Close()
-	if !bytes.Contains(uiBody, []byte("EventDispatcher 控制台")) {
+	if !bytes.Contains(uiBody, []byte("EventDispatcher")) {
 		t.Fatalf("web UI HTML unexpected content")
 	}
 

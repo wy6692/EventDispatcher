@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <!-- 背景底座渐变 -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#181b24"/>
+      <stop offset="100%" stop-color="#0c0e12"/>
+    </linearGradient>
+    <!-- 核心能量/信号流渐变 -->
+    <linearGradient id="coreGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#0284c7"/>
+    </linearGradient>
+    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0284c7" stop-opacity="0.2"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 外边框与圆角底座 -->
+  <rect x="6" y="6" width="116" height="116" rx="26" fill="url(#bgGrad)" stroke="rgba(255, 255, 255, 0.12)" stroke-width="2"/>
+  
+  <!-- 微细刻度装饰 (Subtle Grid) -->
+  <circle cx="64" cy="64" r="44" fill="none" stroke="rgba(56, 189, 248, 0.08)" stroke-width="1" stroke-dasharray="3,3"/>
+  
+  <!-- 调度中枢拓扑结构 (Central Hub & Multiplex Routing) -->
+  <!-- 汇聚进站流 (Left Ingress) -->
+  <path d="M 28 64 L 46 64" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/>
+  
+  <!-- 多路分发主干 (Ingress to Central Hub) -->
+  <path d="M 46 64 L 60 64" fill="none" stroke="#38bdf8" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- 分发辐射路径 (Dispatched Branches) -->
+  <!-- 路径 1: 向上分流 -->
+  <path d="M 68 64 L 84 40 L 98 40" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- 路径 2: 平行直通 -->
+  <path d="M 68 64 L 98 64" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- 路径 3: 向下分流 -->
+  <path d="M 68 64 L 84 88 L 98 88" fill="none" stroke="#38bdf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- 入口脉冲节点 (Ingress Node) -->
+  <circle cx="28" cy="64" r="4" fill="#181b24" stroke="#38bdf8" stroke-width="2.5"/>
+
+  <!-- 中心调度核心 Hub (Central Switcher Core) -->
+  <circle cx="64" cy="64" r="10" fill="url(#coreGrad)"/>
+  <circle cx="64" cy="64" r="5" fill="#ffffff"/>
+
+  <!-- 出口消费者端点 (Downstream Endpoints) -->
+  <circle cx="98" cy="40" r="3.5" fill="#181b24" stroke="#38bdf8" stroke-width="2.5"/>
+  <circle cx="98" cy="64" r="3.5" fill="#181b24" stroke="#38bdf8" stroke-width="2.5"/>
+  <circle cx="98" cy="88" r="3.5" fill="#181b24" stroke="#38bdf8" stroke-width="2.5"/>
+
+  <!-- 速度与状态点缀光斑 -->
+  <circle cx="84" cy="40" r="2" fill="#38bdf8"/>
+  <circle cx="84" cy="88" r="2" fill="#38bdf8"/>
+</svg>

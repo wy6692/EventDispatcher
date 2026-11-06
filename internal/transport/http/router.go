@@ -29,12 +29,12 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	mux.HandleFunc("GET /healthz", cfg.HealthHandler.Health)
 	mux.HandleFunc("/w/{accountKey}", cfg.IngestHandler.ServeHTTP)
 
-	// Web 管理控制台 (内置单页面，无需外部前端环境)
+	// Web 管理控制台 (内置多模块静态控制台，无需外部构建工具与 Node.js)
 	uiHandler := ui.Handler()
-	mux.HandleFunc("GET /ui", uiHandler)
-	mux.HandleFunc("GET /ui/", uiHandler)
+	mux.Handle("GET /ui", uiHandler)
+	mux.Handle("GET /ui/", uiHandler)
 	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/ui", http.StatusFound)
+		http.Redirect(w, r, "/ui/", http.StatusFound)
 	})
 
 	// 2. 受保护的管理端点 (套用 AdminAuth 中间件)
