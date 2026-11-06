@@ -8,9 +8,19 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
-  <!-- 本地离线引入 jQuery、SweetAlert2 与 Tailwind CSS 原子化样式引擎 -->
+  <!-- 本地离线引入 jQuery 与 SweetAlert2 -->
   <script src="js/vendor/jquery.min.js"></script>
   <script src="js/vendor/sweetalert2.all.min.js"></script>
+  <!-- 配置 Tailwind 禁用 preflight (避免全局基础元素重置破坏原有暗黑主题样式) -->
+  <script>
+    window.tailwind = {
+      config: {
+        corePlugins: {
+          preflight: false
+        }
+      }
+    };
+  </script>
   <script src="js/vendor/tailwindcss.js"></script>
 </head>
 <body>
@@ -217,14 +227,14 @@
             <table>
               <thead>
                 <tr>
-                  <th style="width: 130px;">事件 ID</th>
-                  <th>服务号 ID</th>
-                  <th>消息类型</th>
-                  <th>事件类型</th>
-                  <th>EventKey</th>
-                  <th>发送方 OpenID</th>
-                  <th>接收时间</th>
-                  <th style="text-align: right; width: 90px;">载荷</th>
+                  <th style="width: 140px; white-space: nowrap;">事件 ID</th>
+                  <th style="width: 140px; white-space: nowrap;">服务号 ID</th>
+                  <th style="width: 80px; white-space: nowrap;">消息类型</th>
+                  <th style="white-space: nowrap;">事件类型</th>
+                  <th style="white-space: nowrap;">EventKey</th>
+                  <th style="white-space: nowrap;">发送方 OpenID</th>
+                  <th style="width: 160px; white-space: nowrap;">接收时间</th>
+                  <th style="text-align: right; width: 100px; white-space: nowrap;">载荷</th>
                 </tr>
               </thead>
               <tbody id="eventsTable">

@@ -17,12 +17,16 @@ export async function loadEvents() {
       <tr>
         <td><span class="mono-tag">${escapeHtml(e.id)}</span></td>
         <td><span class="mono-tag">${escapeHtml(e.accountId)}</span></td>
-        <td>${escapeHtml(e.msgType || '-')}</td>
-        <td><span class="status-pill status-pill-muted">${escapeHtml(e.event || '-')}</span></td>
-        <td><span style="font-family: var(--font-mono);">${escapeHtml(e.eventKey || '-')}</span></td>
-        <td style="font-size: 11px;">${escapeHtml(e.fromUser || '-')}</td>
-        <td style="color: var(--text-muted); font-size: 11px;">${escapeHtml(e.receivedAt)}</td>
-        <td style="text-align: right;">
+        <td><span class="status-pill status-pill-muted">${escapeHtml(e.msgType || '-')}</span></td>
+        <td><span class="mono-tag" style="color: var(--accent-blue);">${escapeHtml(e.event || '-')}</span></td>
+        <td style="max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(e.eventKey || '-')}">
+          <span style="font-family: var(--font-mono);">${escapeHtml(e.eventKey || '-')}</span>
+        </td>
+        <td style="font-size: 11px; font-family: var(--font-mono); max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${escapeHtml(e.fromUser || '-')}">
+          ${escapeHtml(e.fromUser || '-')}
+        </td>
+        <td style="color: var(--text-muted); font-size: 11px; white-space: nowrap;">${escapeHtml(e.receivedAt)}</td>
+        <td style="text-align: right; white-space: nowrap;">
           <button class="btn btn-sm" data-action="view-payload" data-payload='${escapeHtml(JSON.stringify(e.payload || {}))}'>查看载荷</button>
         </td>
       </tr>

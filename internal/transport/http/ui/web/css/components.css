@@ -16,6 +16,7 @@
   user-select: none;
   font-family: inherit;
   line-height: normal;
+  white-space: nowrap;
 }
 
 .btn:hover {
@@ -38,6 +39,7 @@
 .btn-sm {
   padding: 3px 8px;
   font-size: 11px;
+  white-space: nowrap;
 }
 
 .btn-danger-subtle {
@@ -139,6 +141,7 @@ th {
   border-bottom: 1px solid var(--border-subtle);
   font-size: 11px;
   letter-spacing: 0.2px;
+  white-space: nowrap;
 }
 
 td {
@@ -146,6 +149,7 @@ td {
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 tr:last-child td {
