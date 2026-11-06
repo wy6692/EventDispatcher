@@ -198,22 +198,24 @@ EventDispatcher/
 
 ## 8. Git 提交规范 (Conventional Commits)
 
-提交说明必须遵循 Conventional Commits 格式，严禁出现任何 Emoji 图标：
+提交说明必须遵循 Conventional Commits 格式，**统一使用英文编写（English only）**，使用现在时动词开头，且严禁出现任何 Emoji 图标：
 `<type>(<scope>): <subject>`
 
 - **type**：
-  - `feat`: 新增特性或接口
-  - `fix`: 修复缺陷或逻辑异常
-  - `refactor`: 重构（不改变现有行为的代码结构调整）
-  - `perf`: 性能优化
-  - `test`: 增加或修正测试用例
-  - `docs`: 文档变更
-  - `chore`: 构建配置、依赖版本更新等
-- **scope** 范例：`account`, `subscriber`, `ingest`, `delivery`, `persistence`, `http`
-- **示例**：
-  - `feat(ingest): 支持安全模式下微信消息自动解密`
-  - `fix(delivery): 修正最大重试次数达到后状态未流转为 failed 的问题`
-  - `refactor(transport): 将控制器拆分为独立业务 Handler`
+  - `feat`: 新增特性或接口 (Features)
+  - `fix`: 修复缺陷或逻辑异常 (Bug fixes)
+  - `refactor`: 重构，不改变行为的代码结构调整 (Refactoring)
+  - `perf`: 性能优化 (Performance improvements)
+  - `test`: 增加或修正测试用例 (Tests)
+  - `docs`: 文档变更 (Documentation)
+  - `chore`: 构建配置、依赖版本更新等杂务 (Build tasks, dependencies)
+- **scope** 范例：`account`, `subscriber`, `ingest`, `delivery`, `persistence`, `http`, `ui`, `config`
+- **英文规范示例**：
+  - `feat(ingest): support automatic decryption for wechat secure mode`
+  - `fix(delivery): mark status as failed when max retry attempts reached`
+  - `refactor(transport): split controllers into modular domain handlers`
+  - `docs(api): update webhook hmac verification specifications`
+  - `test(http): add end-to-end full feature test suite`
 
 ### 8.1 提交与推送权限准则 (核心协作铁律)
 - **严禁自主提交**：AI 助手在完成任何代码、配置或文档修改后，**绝对严禁**擅自执行 `git commit` 或 `git push`；
