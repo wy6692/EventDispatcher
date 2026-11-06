@@ -8,6 +8,10 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
+  <!-- 本地离线引入 jQuery、SweetAlert2 与 Tailwind CSS 原子化样式引擎 -->
+  <script src="js/vendor/jquery.min.js"></script>
+  <script src="js/vendor/sweetalert2.all.min.js"></script>
+  <script src="js/vendor/tailwindcss.js"></script>
 </head>
 <body>
 
@@ -164,7 +168,7 @@
                   <th>Token</th>
                   <th>AesKey</th>
                   <th>创建时间</th>
-                  <th style="text-align: right; width: 140px;">操作</th>
+                  <th style="text-align: right; width: 170px;">操作</th>
                 </tr>
               </thead>
               <tbody id="accountsTable">
@@ -192,7 +196,7 @@
                   <th>状态</th>
                   <th>超时/重试</th>
                   <th>过滤规则 (Filter JSON)</th>
-                  <th style="text-align: right; width: 80px;">操作</th>
+                  <th style="text-align: right; width: 190px;">操作</th>
                 </tr>
               </thead>
               <tbody id="subscribersTable">
@@ -256,7 +260,7 @@
                   <th>轮次</th>
                   <th>HTTP 状态</th>
                   <th>错误信息 / 下次重试</th>
-                  <th style="text-align: right; width: 90px;">操作</th>
+                  <th style="text-align: right; width: 130px;">操作</th>
                 </tr>
               </thead>
               <tbody id="deliveriesTable">
@@ -270,14 +274,19 @@
     </main>
   </div>
 
-  <!-- Modal: 新增服务号 -->
+  <!-- Modal: 新增/编辑服务号 -->
   <div class="modal-backdrop" id="accountModal">
     <div class="modal-dialog">
       <div class="modal-header">
-        <span class="modal-title">新增微信服务号</span>
+        <span class="modal-title" id="accountModalTitle">新增微信服务号</span>
         <button class="btn btn-sm" data-action="close-modal" data-modal="accountModal">&times;</button>
       </div>
       <div class="modal-body">
+        <input type="hidden" id="accFormId">
+        <div class="form-group" id="accFormIdRow" style="display: none;">
+          <label class="form-label">服务号 ID</label>
+          <input type="text" class="form-control" id="accFormIdDisplay" readonly style="font-family: var(--font-mono); color: var(--text-muted); background: rgba(255,255,255,0.02);">
+        </div>
         <div class="form-group">
           <label class="form-label">服务号名称 (用于标识展示)</label>
           <input type="text" class="form-control" id="accFormName" placeholder="例如：官方商城服务号">
@@ -291,12 +300,18 @@
           <input type="text" class="form-control" id="accFormAppId" placeholder="wx...">
         </div>
         <div class="form-group">
-          <label class="form-label">微信 Token (接口验证令牌)</label>
+          <label class="form-label">
+            微信 Token (接口验证令牌)
+            <span id="accFormTokenHint" style="font-size: 11px; color: var(--text-muted); font-weight: normal;">(新增必填)</span>
+          </label>
           <input type="password" class="form-control" id="accFormToken" placeholder="微信后台配置的 Token">
         </div>
         <div class="form-group">
-          <label class="form-label">EncodingAESKey (消息加密密钥，明文模式可空)</label>
-          <input type="password" class="form-control" id="accFormAesKey" placeholder="43位字符，如留空则代表明文模式">
+          <label class="form-label">
+            EncodingAESKey (消息加密密钥)
+            <span id="accFormAesKeyHint" style="font-size: 11px; color: var(--text-muted); font-weight: normal;">(43位字符，留空为明文模式)</span>
+          </label>
+          <input type="password" class="form-control" id="accFormAesKey" placeholder="43位字符">
         </div>
       </div>
       <div class="modal-footer">
@@ -306,14 +321,19 @@
     </div>
   </div>
 
-  <!-- Modal: 新增订阅者 -->
+  <!-- Modal: 新增/编辑订阅者 -->
   <div class="modal-backdrop" id="subscriberModal">
     <div class="modal-dialog">
       <div class="modal-header">
-        <span class="modal-title">新增下游订阅方</span>
+        <span class="modal-title" id="subscriberModalTitle">新增下游订阅方</span>
         <button class="btn btn-sm" data-action="close-modal" data-modal="subscriberModal">&times;</button>
       </div>
       <div class="modal-body">
+        <input type="hidden" id="subFormId">
+        <div class="form-group" id="subFormIdRow" style="display: none;">
+          <label class="form-label">订阅方 ID</label>
+          <input type="text" class="form-control" id="subFormIdDisplay" readonly style="font-family: var(--font-mono); color: var(--text-muted); background: rgba(255,255,255,0.02);">
+        </div>
         <div class="form-group">
           <label class="form-label">订阅方名称</label>
           <input type="text" class="form-control" id="subFormName" placeholder="例如：CRM用户同步服务">
@@ -327,12 +347,22 @@
           <input type="url" class="form-control" id="subFormCallbackUrl" placeholder="https://api.example.com/events/wechat">
         </div>
         <div class="form-group">
-          <label class="form-label">出站签名 HMAC 密钥 (Secret)</label>
-          <input type="password" class="form-control" id="subFormSecret" placeholder="用于生成 X-Event-Signature">
+          <label class="form-label">
+            出站签名 HMAC 密钥 (Secret)
+            <span id="subFormSecretHint" style="font-size: 11px; color: var(--text-muted); font-weight: normal;">(用于生成 X-Dispatcher-Signature)</span>
+          </label>
+          <input type="password" class="form-control" id="subFormSecret" placeholder="输入密钥字符串">
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
           <div class="form-group">
-            <label class="form-label">HTTP 请求超时 (毫秒)</label>
+            <label class="form-label">启用状态</label>
+            <select class="form-control" id="subFormEnabled">
+              <option value="true">已启用</option>
+              <option value="false">已停用</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">超时 (毫秒)</label>
             <input type="number" class="form-control" id="subFormTimeout" value="3000">
           </div>
           <div class="form-group">
@@ -349,8 +379,141 @@
         </div>
       </div>
       <div class="modal-footer">
+        <button class="btn btn-sm" id="btnTestSubForm" type="button">测试当前配置</button>
         <button class="btn btn-sm" id="btnCloseSubscriberModal">取消</button>
         <button class="btn btn-primary btn-sm" id="btnSubmitSubscriber">保存订阅方</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: 下游连接测试 -->
+  <div class="modal-backdrop" id="subscriberTestModal">
+    <div class="modal-dialog" style="max-width: 680px;">
+      <div class="modal-header">
+        <span class="modal-title">下游订阅端点连通性测试 (Test Probe)</span>
+        <button class="btn btn-sm" data-action="close-modal" data-modal="subscriberTestModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="subTestSubscriberId">
+        <div class="detail-grid" style="margin-bottom: 12px;">
+          <span class="detail-label">测试目标</span>
+          <span class="detail-value" id="subTestTargetName">-</span>
+          <span class="detail-label">Webhook URL</span>
+          <span class="detail-value mono-tag" id="subTestTargetUrl" style="word-break: break-all;">-</span>
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span class="form-label">出站测试事件载荷预览 (Ping Event Payload)</span>
+            <span style="font-size: 10px; color: var(--text-muted);">附带 HMAC-SHA256 完整签名</span>
+          </div>
+          <pre class="code-view" id="subTestPayloadPreview" style="max-height: 120px; font-size: 10px;"></pre>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
+          <button class="btn btn-primary btn-sm" id="btnExecuteSubTest">发送测试事件</button>
+          <span id="subTestLoading" style="display: none; font-size: 11px; color: var(--accent-blue);">
+            正在建立 HTTP 连接并发送测试事件...
+          </span>
+        </div>
+
+        <div id="subTestResultArea" style="display: none;">
+          <div class="panel-title" style="margin-bottom: 8px;">测试结果报告</div>
+          <div id="subTestAlertBox" class="alert-box"></div>
+          
+          <div class="detail-grid" style="margin-bottom: 10px;">
+            <span class="detail-label">HTTP 响应码</span>
+            <span class="detail-value" id="subTestStatusCode">-</span>
+            <span class="detail-label">网络往返耗时</span>
+            <span class="detail-value" id="subTestLatency">-</span>
+            <span class="detail-label">测试事件 ID</span>
+            <span class="detail-value mono-tag" id="subTestEventId">-</span>
+          </div>
+
+          <div style="margin-top: 10px;">
+            <div style="font-size: 11px; font-weight: 500; color: var(--text-secondary); margin-bottom: 4px;">下游端点响应内容 (Response Body)</div>
+            <pre class="code-view" id="subTestResponseBody" style="max-height: 120px;"></pre>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary btn-sm" data-action="close-modal" data-modal="subscriberTestModal">关闭</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: 投递调度详情 -->
+  <div class="modal-backdrop" id="deliveryDetailModal">
+    <div class="modal-dialog" style="max-width: 720px;">
+      <div class="modal-header">
+        <span class="modal-title">投递任务调度详情</span>
+        <button class="btn btn-sm" data-action="close-modal" data-modal="deliveryDetailModal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="detail-grid">
+          <span class="detail-label">投递任务 ID</span>
+          <div class="detail-value" style="display: flex; align-items: center; gap: 8px;">
+            <span class="mono-tag" id="dlvDetailId">-</span>
+            <button class="btn btn-sm" id="btnCopyDlvId">复制 ID</button>
+          </div>
+
+          <span class="detail-label">关联微信事件</span>
+          <div class="detail-value" style="display: flex; align-items: center; gap: 8px;">
+            <span class="mono-tag" id="dlvDetailEventId">-</span>
+            <button class="btn btn-sm" id="btnCopyDlvEventId">复制 ID</button>
+            <button class="btn btn-sm" id="btnViewDlvEventPayload">查看原始事件</button>
+          </div>
+
+          <span class="detail-label">目标订阅方</span>
+          <span class="detail-value" id="dlvDetailSubscriber">-</span>
+
+          <span class="detail-label">回调 Webhook</span>
+          <span class="detail-value mono-tag" id="dlvDetailUrl" style="word-break: break-all;">-</span>
+
+          <span class="detail-label">投递调度状态</span>
+          <span class="detail-value" id="dlvDetailStatus">-</span>
+
+          <span class="detail-label">累计重试轮次</span>
+          <span class="detail-value" id="dlvDetailAttempt">-</span>
+
+          <span class="detail-label">下游响应码</span>
+          <span class="detail-value" id="dlvDetailStatusCode">-</span>
+
+          <span class="detail-label">下次调度 / 更新</span>
+          <span class="detail-value" id="dlvDetailTime" style="color: var(--text-muted); font-size: 11px;">-</span>
+        </div>
+
+        <!-- 错误信息展示区 -->
+        <div id="dlvDetailErrorBlock" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 11px; font-weight: 600; color: var(--accent-red);">最近一次投递错误详情 (Last Error)</span>
+            <button class="btn btn-sm btn-danger-subtle" id="btnCopyDlvError">复制完整错误信息</button>
+          </div>
+          <pre class="code-view" id="dlvDetailErrorText" style="max-height: 140px; color: #ff7b72; background: rgba(248, 81, 73, 0.05); border-color: rgba(248, 81, 73, 0.25); white-space: pre-wrap; word-break: break-all;"></pre>
+        </div>
+
+        <!-- 成功提示区 -->
+        <div id="dlvDetailSuccessBlock" class="alert-box alert-box-success" style="display: none;">
+          投递已成功：下游系统已成功响应 HTTP 2xx，事件派发流程已正常终结。
+        </div>
+
+        <!-- 待重试状态区 -->
+        <div id="dlvDetailPendingBlock" class="alert-box alert-box-info" style="display: none;">
+          等待后台调度器自动重试中。如需立即发送，可点击下方「立即重试」按钮。
+        </div>
+
+        <!-- 关联事件载荷预览 -->
+        <div style="margin-top: 14px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-size: 11px; font-weight: 600; color: var(--text-secondary);">出站事件载荷 (Dispatched Event Payload)</span>
+            <button class="btn btn-sm" id="btnCopyDlvPayload">复制 JSON</button>
+          </div>
+          <pre class="code-view" id="dlvDetailPayloadText" style="max-height: 160px; font-size: 11px;">载荷加载中...</pre>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-sm" id="btnDlvModalRetry">立即重放此任务</button>
+        <button class="btn btn-primary btn-sm" data-action="close-modal" data-modal="deliveryDetailModal">关闭</button>
       </div>
     </div>
   </div>

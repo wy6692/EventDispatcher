@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -388,9 +389,9 @@ func TestFullFeatureSuite(t *testing.T) {
 
 		// 5.1 正确的明文校验
 		sig := wechat.Signature(wechatToken, ts, nonce)
-		url := fmt.Sprintf("%s/w/%s?signature=%s&timestamp=%s&nonce=%s&echostr=%s",
+		plainURL := fmt.Sprintf("%s/w/%s?signature=%s&timestamp=%s&nonce=%s&echostr=%s",
 			srv.URL, accountKey, sig, ts, nonce, echostr)
-		resp, err := client.Get(url)
+		resp, err := client.Get(plainURL)
 		if err != nil || resp.StatusCode != http.StatusOK {
 			t.Fatalf("verify URL failed, status: %d", resp.StatusCode)
 		}
@@ -416,7 +417,7 @@ func TestFullFeatureSuite(t *testing.T) {
 		}
 		msgSig := wechat.Signature(wechatToken, ts, nonce, encryptedEcho)
 		aesURL := fmt.Sprintf("%s/w/%s?signature=%s&timestamp=%s&nonce=%s&echostr=%s&encrypt_type=aes&msg_signature=%s",
-			srv.URL, accountKey, sig, ts, nonce, encryptedEcho, msgSig)
+			srv.URL, accountKey, sig, ts, nonce, url.QueryEscape(encryptedEcho), msgSig)
 		resp, err = client.Get(aesURL)
 		if err != nil || resp.StatusCode != http.StatusOK {
 			t.Fatalf("AES verify URL failed, status: %d", resp.StatusCode)
@@ -824,6 +825,51 @@ func TestFullFeatureSuite(t *testing.T) {
 		resp, _ = doAdminRequest(http.MethodGet, "/admin/subscribers/"+flakySubID, nil, adminToken)
 		if resp.StatusCode != http.StatusNotFound {
 			t.Fatalf("expected 404 after deleting subscriber, got %d", resp.StatusCode)
+		}
+	})
+
+	// 12. 下游连通性测试 (POST /admin/subscribers/{id}/test & POST /admin/subscribers/test)
+	t.Run("12_SubscriberConnectivityTest", func(t *testing.T) {
+		// 12.1 测试已有订阅方
+		resp, body := doAdminRequest(http.MethodPost, "/admin/subscribers/"+crmSubID+"/test", nil, adminToken)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("test subscriber failed: %s", string(body))
+		}
+		var testRes struct {
+			Data struct {
+				Success     bool              `json:"success"`
+				StatusCode  int               `json:"statusCode"`
+				LatencyMs   int64             `json:"latencyMs"`
+				TargetURL   string            `json:"targetUrl"`
+				HeadersSent map[string]string `json:"headersSent"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(body, &testRes); err != nil {
+			t.Fatalf("unmarshal test response failed: %v", err)
+		}
+		if !testRes.Data.Success || testRes.Data.StatusCode != http.StatusOK {
+			t.Fatalf("expected test probe success, got: %+v", testRes.Data)
+		}
+		if testRes.Data.HeadersSent["X-Dispatcher-Signature"] == "" {
+			t.Fatalf("expected X-Dispatcher-Signature header to be sent")
+		}
+
+		// 12.2 测试临时/直接测试接口
+		directReq := map[string]any{
+			"accountId":   accountID,
+			"callbackUrl": downstreamSrv.URL + "/webhook/crm",
+			"secret":      "direct-test-secret",
+			"timeoutMs":   2000,
+		}
+		resp, body = doAdminRequest(http.MethodPost, "/admin/subscribers/test", directReq, adminToken)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("direct test subscriber failed: %s", string(body))
+		}
+		if err := json.Unmarshal(body, &testRes); err != nil {
+			t.Fatalf("unmarshal direct test response failed: %v", err)
+		}
+		if !testRes.Data.Success || testRes.Data.StatusCode != http.StatusOK {
+			t.Fatalf("expected direct test probe success, got: %+v", testRes.Data)
 		}
 	})
 }

@@ -19,6 +19,7 @@ type Delivery struct {
 	EventID        string    `json:"eventId"`
 	SubscriberID   string    `json:"subscriberId"`
 	SubscriberName string    `json:"subscriberName,omitempty"`
+	CallbackURL    string    `json:"callbackUrl,omitempty"`
 	Status         string    `json:"status"`
 	Attempt        int       `json:"attempt"`
 	NextRetryAt    time.Time `json:"nextRetryAt"`

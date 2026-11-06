@@ -22,6 +22,7 @@ type DeliveryDTO struct {
 	EventID        string `json:"eventId"`
 	SubscriberID   string `json:"subscriberId"`
 	SubscriberName string `json:"subscriberName,omitempty"`
+	CallbackURL    string `json:"callbackUrl,omitempty"`
 	Status         string `json:"status"`
 	Attempt        int    `json:"attempt"`
 	NextRetryAt    string `json:"nextRetryAt"`
@@ -102,7 +103,7 @@ func (s *DeliveryService) executeJob(ctx context.Context, job domain.DueJob) {
 	ts := strconv.FormatInt(time.Now().Unix(), 10)
 	req, err := http.NewRequestWithContext(reqCtx, http.MethodPost, job.CallbackURL, bytes.NewReader(job.Payload))
 	if err != nil {
-		s.settleFailure(ctx, job, 0, "invalid callback url")
+		s.settleFailure(ctx, job, 0, fmt.Sprintf("invalid callback url: %v", err))
 		return
 	}
 
@@ -119,7 +120,7 @@ func (s *DeliveryService) executeJob(ctx context.Context, job domain.DueJob) {
 		return
 	}
 	if err != nil {
-		s.settleFailure(ctx, job, 0, "webhook request error")
+		s.settleFailure(ctx, job, 0, fmt.Sprintf("webhook request error: %v", err))
 		return
 	}
 	defer resp.Body.Close()
@@ -142,10 +143,14 @@ func (s *DeliveryService) executeJob(ctx context.Context, job domain.DueJob) {
 		return
 	}
 
-	errMsg := fmt.Sprintf("http status %d", resp.StatusCode)
+	statusText := http.StatusText(resp.StatusCode)
+	if statusText == "" {
+		statusText = "Unknown Status"
+	}
+	errMsg := fmt.Sprintf("HTTP %d (%s)", resp.StatusCode, statusText)
 	if text := sanitizeString(string(snippet)); text != "" {
-		if len(text) > 128 {
-			text = text[:128]
+		if len(text) > 512 {
+			text = text[:512] + "..."
 		}
 		errMsg += ": " + text
 	}
@@ -253,6 +258,7 @@ func toDeliveryDTO(d *domain.Delivery) *DeliveryDTO {
 		EventID:        d.EventID,
 		SubscriberID:   d.SubscriberID,
 		SubscriberName: d.SubscriberName,
+		CallbackURL:    d.CallbackURL,
 		Status:         d.Status,
 		Attempt:        d.Attempt,
 		NextRetryAt:    d.NextRetryAt.Format(time.RFC3339),

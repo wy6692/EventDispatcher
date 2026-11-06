@@ -70,4 +70,19 @@ func TestUIHandlerStaticFiles(t *testing.T) {
 			t.Fatalf("expected switchTab in app.js")
 		}
 	})
+
+	t.Run("serve vendor assets locally", func(t *testing.T) {
+		for _, file := range []string{"jquery.min.js", "tailwindcss.js", "sweetalert2.all.min.js"} {
+			req := httptest.NewRequest(http.MethodGet, "/ui/js/vendor/"+file, nil)
+			rec := httptest.NewRecorder()
+			handler.ServeHTTP(rec, req)
+
+			if rec.Code != http.StatusOK {
+				t.Fatalf("expected status 200 for /ui/js/vendor/%s, got %d", file, rec.Code)
+			}
+			if rec.Body.Len() == 0 {
+				t.Fatalf("expected non-empty body for /ui/js/vendor/%s", file)
+			}
+		}
+	})
 }

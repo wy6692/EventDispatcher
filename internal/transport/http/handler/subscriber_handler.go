@@ -73,3 +73,27 @@ func (h *SubscriberHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
+
+func (h *SubscriberHandler) Test(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	res, err := h.svc.Test(r.Context(), id)
+	if err != nil {
+		response.Error(w, r, err)
+		return
+	}
+	response.Success(w, r, res)
+}
+
+func (h *SubscriberHandler) TestDirect(w http.ResponseWriter, r *http.Request) {
+	var dto service.SubscriberTestDirectDTO
+	if err := decodeJSON(r, &dto); err != nil {
+		response.Error(w, r, errcode.ErrInvalidParam.WithMessage("请求 JSON 无效"))
+		return
+	}
+	res, err := h.svc.TestDirect(r.Context(), dto)
+	if err != nil {
+		response.Error(w, r, err)
+		return
+	}
+	response.Success(w, r, res)
+}

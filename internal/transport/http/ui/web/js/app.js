@@ -2,10 +2,10 @@ import { getToken, setToken, updateTokenState } from './state.js';
 import { checkHealth } from './api.js';
 import { copyText, openModal, closeModal, pushToast } from './utils.js';
 import { loadOverview } from './views/overview.js';
-import { loadAccounts, deleteAccount, openCreateAccountModal, submitAccountForm, copyCallbackUrl } from './views/accounts.js';
-import { loadSubscribers, deleteSubscriber, openCreateSubscriberModal, submitSubscriberForm } from './views/subscribers.js';
+import { loadAccounts, deleteAccount, openCreateAccountModal, openEditAccountModal, submitAccountForm, copyCallbackUrl } from './views/accounts.js';
+import { loadSubscribers, deleteSubscriber, openCreateSubscriberModal, openEditSubscriberModal, submitSubscriberForm, toggleSubscriberEnabled, openTestSubscriberModal, runSubscriberTest, testSubscriberFormConfig } from './views/subscribers.js';
 import { loadEvents, viewPayload } from './views/events.js';
-import { loadDeliveries, retryDelivery } from './views/deliveries.js';
+import { loadDeliveries, retryDelivery, openDeliveryDetail, initDeliveryDetailActions } from './views/deliveries.js';
 
 const VALID_TABS = ['overview', 'accounts', 'subscribers', 'events', 'deliveries'];
 let activeTab = 'overview';
@@ -130,6 +130,33 @@ function bindEvents() {
   const btnCloseSubscriberModal = document.getElementById('btnCloseSubscriberModal');
   if (btnCloseSubscriberModal) btnCloseSubscriberModal.addEventListener('click', () => closeModal('subscriberModal'));
 
+  // 连通性测试按钮
+  const btnTestSubForm = document.getElementById('btnTestSubForm');
+  if (btnTestSubForm) btnTestSubForm.addEventListener('click', testSubscriberFormConfig);
+
+  const btnExecuteSubTest = document.getElementById('btnExecuteSubTest');
+  if (btnExecuteSubTest) btnExecuteSubTest.addEventListener('click', runSubscriberTest);
+
+  // 初始化投递详情弹窗事件
+  initDeliveryDetailActions();
+
+  // 查看投递任务关联事件载荷
+  const btnViewDlvEvent = document.getElementById('btnViewDlvEventPayload');
+  if (btnViewDlvEvent) {
+    btnViewDlvEvent.addEventListener('click', () => {
+      const text = document.getElementById('dlvDetailPayloadText').innerText;
+      if (text && text !== '载荷加载中...' && text !== '正在加载关联事件载荷...') {
+        try {
+          viewPayload(JSON.parse(text));
+        } catch {
+          viewPayload({ payload: text });
+        }
+      } else {
+        pushToast('载荷尚未加载完成', 'error');
+      }
+    });
+  }
+
   // 载荷查看器弹窗
   const btnCopyPayload = document.getElementById('btnCopyPayload');
   if (btnCopyPayload) {
@@ -164,11 +191,28 @@ function bindEvents() {
         if (key) copyCallbackUrl(key);
         break;
       }
+      case 'edit-account':
+        if (id) openEditAccountModal(id);
+        break;
       case 'delete-account':
         if (id) deleteAccount(id);
         break;
+      case 'edit-subscriber':
+        if (id) openEditSubscriberModal(id);
+        break;
+      case 'toggle-subscriber-enabled': {
+        const cur = target.getAttribute('data-enabled') === 'true';
+        if (id) toggleSubscriberEnabled(id, cur);
+        break;
+      }
+      case 'test-subscriber':
+        if (id) openTestSubscriberModal(id);
+        break;
       case 'delete-subscriber':
         if (id) deleteSubscriber(id);
+        break;
+      case 'view-delivery':
+        if (id) openDeliveryDetail(id);
         break;
       case 'retry-delivery':
         if (id) retryDelivery(id);

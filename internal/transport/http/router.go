@@ -49,8 +49,10 @@ func NewRouter(cfg RouterConfig) http.Handler {
 
 	// Subscribers
 	mux.Handle("POST /admin/subscribers", adminAuth(http.HandlerFunc(cfg.SubscriberHandler.Create)))
+	mux.Handle("POST /admin/subscribers/test", adminAuth(http.HandlerFunc(cfg.SubscriberHandler.TestDirect)))
 	mux.Handle("GET /admin/subscribers", adminAuth(http.HandlerFunc(cfg.SubscriberHandler.List)))
 	mux.Handle("GET /admin/subscribers/{id}", adminAuth(http.HandlerFunc(cfg.SubscriberHandler.Get)))
+	mux.Handle("POST /admin/subscribers/{id}/test", adminAuth(http.HandlerFunc(cfg.SubscriberHandler.Test)))
 	mux.Handle("PUT /admin/subscribers/{id}", adminAuth(http.HandlerFunc(cfg.SubscriberHandler.Update)))
 	mux.Handle("DELETE /admin/subscribers/{id}", adminAuth(http.HandlerFunc(cfg.SubscriberHandler.Delete)))
 

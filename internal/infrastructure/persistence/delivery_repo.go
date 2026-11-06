@@ -124,7 +124,7 @@ func (r *DeliveryRepository) Reset(ctx context.Context, id string, now time.Time
 }
 
 func (r *DeliveryRepository) GetByID(ctx context.Context, id string) (*domain.Delivery, error) {
-	query := `SELECT d.id, d.event_id, d.subscriber_id, s.name, d.status, d.attempt, d.next_retry_at, d.last_status_code, d.last_error, d.updated_at
+	query := `SELECT d.id, d.event_id, d.subscriber_id, s.name, s.callback_url, d.status, d.attempt, d.next_retry_at, d.last_status_code, d.last_error, d.updated_at
 		FROM deliveries d
 		JOIN subscribers s ON d.subscriber_id = s.id
 		WHERE d.id = ?`
@@ -135,7 +135,7 @@ func (r *DeliveryRepository) List(ctx context.Context, eventID, status string, l
 	if limit <= 0 || limit > 200 {
 		limit = 50
 	}
-	query := `SELECT d.id, d.event_id, d.subscriber_id, s.name, d.status, d.attempt, d.next_retry_at, d.last_status_code, d.last_error, d.updated_at
+	query := `SELECT d.id, d.event_id, d.subscriber_id, s.name, s.callback_url, d.status, d.attempt, d.next_retry_at, d.last_status_code, d.last_error, d.updated_at
 		FROM deliveries d
 		JOIN subscribers s ON d.subscriber_id = s.id WHERE 1=1`
 	var args []any
@@ -172,7 +172,7 @@ func (r *DeliveryRepository) scan(s rowScanner) (*domain.Delivery, error) {
 	var nextRetryUnix int64
 	var uTime string
 	err := s.Scan(
-		&d.ID, &d.EventID, &d.SubscriberID, &d.SubscriberName, &d.Status,
+		&d.ID, &d.EventID, &d.SubscriberID, &d.SubscriberName, &d.CallbackURL, &d.Status,
 		&d.Attempt, &nextRetryUnix, &d.LastStatusCode, &d.LastError, &uTime,
 	)
 	if err != nil {

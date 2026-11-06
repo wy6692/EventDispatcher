@@ -341,3 +341,60 @@ pre.code-view {
 .toast-msg.success {
   border-left: 3px solid var(--accent-green);
 }
+
+/* 键值详情网格 */
+.detail-grid {
+  display: grid;
+  grid-template-columns: 120px 1fr;
+  gap: 8px 14px;
+  font-size: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.detail-label {
+  color: var(--text-muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.detail-value {
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+/* 提示与状态面板 */
+.alert-box {
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.alert-box-error {
+  background: rgba(248, 81, 73, 0.08);
+  border: 1px solid rgba(248, 81, 73, 0.3);
+  color: var(--accent-red);
+}
+
+.alert-box-success {
+  background: rgba(63, 185, 80, 0.08);
+  border: 1px solid rgba(63, 185, 80, 0.3);
+  color: var(--accent-green);
+}
+
+.alert-box-info {
+  background: rgba(88, 166, 255, 0.08);
+  border: 1px solid rgba(88, 166, 255, 0.25);
+  color: var(--accent-blue);
+}
+
+/* 连通性测试面板卡片 */
+.test-result-card {
+  background: #08090c;
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 14px;
+  margin-top: 14px;
+}
