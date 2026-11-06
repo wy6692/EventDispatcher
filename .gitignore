@@ -1,0 +1,9 @@
+/data/
+/bin/
+*.db
+*.db-wal
+*.db-shm
+/dispatcher
+/dispatcher.exe
+
+.env

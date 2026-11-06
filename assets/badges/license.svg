@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="84" height="20" role="img" aria-label="license: MIT">
+  <g shape-rendering="crispEdges">
+    <rect width="50" height="20" fill="#555"/>
+    <rect x="50" width="34" height="20" fill="#007ec6"/>
+  </g>
+  <g fill="#fff" text-anchor="middle" font-family="Verdana,Geneva,DejaVu Sans,sans-serif" text-rendering="geometricPrecision" font-size="11">
+    <text x="25" y="14">license</text>
+    <text x="67" y="14" font-weight="bold">MIT</text>
+  </g>
+</svg>
