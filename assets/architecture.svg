@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 720" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0b0f17"/>
+      <stop offset="100%" stop-color="#111827"/>
+    </linearGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1f293d"/>
+      <stop offset="100%" stop-color="#131c2e"/>
+    </linearGradient>
+    <linearGradient id="subcardGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#243047"/>
+      <stop offset="100%" stop-color="#182235"/>
+    </linearGradient>
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="125%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#60a5fa"/>
+    </marker>
+    <marker id="arrowGreen" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 8 5 L 0 9 z" fill="#34d399"/>
+    </marker>
+  </defs>
+
+  <style>
+    .title { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-size: 13px; font-weight: 600; fill: #f3f4f6; }
+    .subtitle { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; fill: #9ca3af; }
+    .label { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif; font-size: 12px; font-weight: 500; fill: #e5e7eb; }
+    .desc { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 11px; fill: #94a3b8; }
+    .tag { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; font-weight: 600; fill: #60a5fa; }
+    .tag-green { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; font-weight: 600; fill: #34d399; }
+    .flow-text { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; font-size: 10px; fill: #93c5fd; }
+  </style>
+
+  <!-- 背景画布 -->
+  <rect width="1080" height="720" rx="12" fill="url(#bgGrad)"/>
+  <rect width="1080" height="720" rx="12" fill="none" stroke="#1e293b" stroke-width="1.5"/>
+
+  <!-- 顶部标题区 -->
+  <text x="40" y="44" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="700" fill="#ffffff" letter-spacing="0.5">EventDispatcher</text>
+  <text x="175" y="44" class="subtitle" font-size="12">| 系统核心分层架构与异步事件分发流</text>
+
+  <!-- 1. 外部源：微信公众平台 -->
+  <g transform="translate(40, 75)">
+    <rect width="1000" height="74" rx="8" fill="#13231b" stroke="#059669" stroke-width="1.2" filter="url(#cardShadow)"/>
+    <rect x="18" y="18" width="38" height="38" rx="6" fill="#047857"/>
+    <path d="M37 28 C30 28 25 32 25 37 C25 40 27 42 30 44 L29 48 L33 46 C34 46 36 46 37 46 C44 46 49 42 49 37 C49 32 44 28 37 28 Z" fill="#ffffff"/>
+    <text x="68" y="36" class="title" fill="#a7f3d0">微信公众平台 (WeChat Push Service)</text>
+    <text x="68" y="52" class="desc" fill="#6ee7b7">服务号唯一的服务器配置端点 · 支持明文模式、兼容模式与 AES-256-CBC 安全模式</text>
+    <rect x="850" y="24" width="130" height="26" rx="4" fill="#064e3b" stroke="#059669" stroke-width="1"/>
+    <text x="915" y="41" text-anchor="middle" class="tag-green">HTTPS POST / GET</text>
+  </g>
+
+  <!-- 流程连线 1: 微信 -> 传输层 -->
+  <path d="M 540 149 L 540 185" fill="none" stroke="#34d399" stroke-width="2" stroke-dasharray="4 2" marker-end="url(#arrowGreen)"/>
+  <rect x="475" y="157" width="130" height="20" rx="4" fill="#064e3b" stroke="#059669" stroke-width="0.8"/>
+  <text x="540" y="171" text-anchor="middle" class="tag-green">XML 报文 / URL 验证</text>
+
+  <!-- 2. 网关核心主体容器 -->
+  <g transform="translate(40, 188)">
+    <rect width="1000" height="370" rx="10" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5" filter="url(#cardShadow)"/>
+    
+    <!-- 标头 -->
+    <rect x="16" y="14" width="6" height="18" rx="3" fill="#3b82f6"/>
+    <text x="30" y="28" class="title" font-size="14">EventDispatcher 网关核心 (Gateway Core Engine)</text>
+    <text x="375" y="28" class="subtitle">Clean Architecture / 领域驱动分层体系</text>
+
+    <!-- 2.1 传输层 Transport Layer -->
+    <g transform="translate(24, 46)">
+      <rect width="952" height="88" rx="6" fill="url(#subcardGrad)" stroke="#2b3b55" stroke-width="1"/>
+      <text x="16" y="24" class="title" fill="#93c5fd">传输与控制适配层 (Transport / HTTP Layer)</text>
+
+      <!-- IngestHandler -->
+      <g transform="translate(16, 34)">
+        <rect width="450" height="42" rx="5" fill="#172338" stroke="#3b82f6" stroke-width="1"/>
+        <text x="14" y="25" class="label">网关接收控制器 (IngestHandler)</text>
+        <text x="210" y="25" class="desc">GET 验签 · POST 接收 · 毫秒级应答 "success"</text>
+      </g>
+
+      <!-- AdminHandler -->
+      <g transform="translate(486, 34)">
+        <rect width="450" height="42" rx="5" fill="#172338" stroke="#475569" stroke-width="1"/>
+        <text x="14" y="25" class="label">管理控制台 (AdminHandler)</text>
+        <text x="195" y="25" class="desc">Bearer Token 鉴权 · 凭据脱敏 · 审计与手动重试</text>
+      </g>
+    </g>
+
+    <!-- 连接线: Transport -> Service -->
+    <path d="M 265 134 L 265 160" fill="none" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <path d="M 725 134 L 725 160" fill="none" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- 2.2 领域应用服务层 Application Service -->
+    <g transform="translate(24, 162)">
+      <rect width="952" height="106" rx="6" fill="url(#subcardGrad)" stroke="#2b3b55" stroke-width="1"/>
+      <text x="16" y="22" class="title" fill="#bfdbfe">领域业务用例层 (Application Service Layer)</text>
+
+      <!-- IngestService -->
+      <g transform="translate(16, 32)">
+        <rect width="298" height="60" rx="5" fill="#172338" stroke="#2563eb" stroke-width="1"/>
+        <text x="12" y="24" class="label">接入编排 (IngestService)</text>
+        <text x="12" y="44" class="desc">解密验签 · 全局幂等去重 · 广播规则匹配</text>
+      </g>
+
+      <!-- DeliveryService -->
+      <g transform="translate(328, 32)">
+        <rect width="298" height="60" rx="5" fill="#172338" stroke="#2563eb" stroke-width="1"/>
+        <text x="12" y="24" class="label">投递调度 (DeliveryService)</text>
+        <text x="12" y="44" class="desc">抢占式 Worker · HMAC 签名 · 指数退避重试</text>
+      </g>
+
+      <!-- Account/Sub Service -->
+      <g transform="translate(638, 32)">
+        <rect width="298" height="60" rx="5" fill="#172338" stroke="#475569" stroke-width="1"/>
+        <text x="12" y="24" class="label">配置管理 (Account &amp; Sub Service)</text>
+        <text x="12" y="44" class="desc">账号生命周期 · 过滤规则管理 · 凭据保护</text>
+      </g>
+    </g>
+
+    <!-- 连接线: Service -> Infra -->
+    <path d="M 175 268 L 175 288" fill="none" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <path d="M 477 268 L 477 288" fill="none" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+    <path d="M 787 268 L 787 288" fill="none" stroke="#60a5fa" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+    <!-- 2.3 基础设施与持久化层 Infrastructure Layer -->
+    <g transform="translate(24, 290)">
+      <rect width="952" height="66" rx="6" fill="#111827" stroke="#374151" stroke-width="1"/>
+      
+      <!-- SQLite -->
+      <g transform="translate(16, 12)">
+        <rect width="450" height="42" rx="4" fill="#1f2937" stroke="#4b5563" stroke-width="1"/>
+        <text x="14" y="26" class="label" fill="#f9fafb">持久化仓储 (SQLite - Pure Go 驱动)</text>
+        <text x="235" y="26" class="desc">WAL 模式 · 单连接写隔离 · 防死锁</text>
+      </g>
+
+      <!-- WeChat Crypto Adapter -->
+      <g transform="translate(486, 12)">
+        <rect width="450" height="42" rx="4" fill="#1f2937" stroke="#4b5563" stroke-width="1"/>
+        <text x="14" y="26" class="label" fill="#f9fafb">微信加解密引擎 (WeChat Crypto Adapter)</text>
+        <text x="250" y="26" class="desc">PKCS#7 逆填充 · SHA1 校验</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- 流程连线: Gateway -> Downstream Webhooks -->
+  <path d="M 210 558 L 210 595" fill="none" stroke="#60a5fa" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <path d="M 540 558 L 540 595" fill="none" stroke="#60a5fa" stroke-width="1.8" marker-end="url(#arrow)"/>
+  <path d="M 870 558 L 870 595" fill="none" stroke="#60a5fa" stroke-width="1.8" marker-end="url(#arrow)"/>
+
+  <!-- 3. 下游业务系统 (Webhooks) -->
+  <g transform="translate(40, 600)">
+    <!-- 订阅者 A -->
+    <g transform="translate(0, 0)">
+      <rect width="310" height="90" rx="8" fill="#182235" stroke="#3b82f6" stroke-width="1.2" filter="url(#cardShadow)"/>
+      <text x="16" y="26" class="title" fill="#93c5fd">菜单交互系统 (Menu Service)</text>
+      <text x="16" y="44" class="desc">过滤规则：msgType="event", event="CLICK"</text>
+      <rect x="16" y="56" width="180" height="20" rx="4" fill="#1e293b"/>
+      <text x="24" y="70" class="flow-text">POST JSON + HMAC 签名</text>
+    </g>
+
+    <!-- 订阅者 B -->
+    <g transform="translate(345, 0)">
+      <rect width="310" height="90" rx="8" fill="#182235" stroke="#3b82f6" stroke-width="1.2" filter="url(#cardShadow)"/>
+      <text x="16" y="26" class="title" fill="#93c5fd">行为与合规审计系统 (Audit Log)</text>
+      <text x="16" y="44" class="desc">过滤规则：全量监听 (All Events &amp; Messages)</text>
+      <rect x="16" y="56" width="180" height="20" rx="4" fill="#1e293b"/>
+      <text x="24" y="70" class="flow-text">POST JSON + HMAC 签名</text>
+    </g>
+
+    <!-- 订阅者 C -->
+    <g transform="translate(690, 0)">
+      <rect width="310" height="90" rx="8" fill="#182235" stroke="#3b82f6" stroke-width="1.2" filter="url(#cardShadow)"/>
+      <text x="16" y="26" class="title" fill="#93c5fd">外部 CRM / 客服系统 (CRM / Desk)</text>
+      <text x="16" y="44" class="desc">过滤规则：关注扫码 (scan) / 用户文字上行</text>
+      <rect x="16" y="56" width="180" height="20" rx="4" fill="#1e293b"/>
+      <text x="24" y="70" class="flow-text">POST JSON + HMAC 签名</text>
+    </g>
+  </g>
+</svg>

@@ -50,45 +50,9 @@
 
 ## 系统架构
 
-```mermaid
-flowchart TD
-    subgraph WeChat["微信公众平台"]
-        WC_Server["微信推送服务器"]
-    end
-
-    subgraph TransportLayer["传输层 (Transport / HTTP)"]
-        IngestH["网关接收控制器 (IngestHandler)<br/>• 验证 URL (GET)<br/>• 接收 XML (POST)<br/>• 毫秒级回复 'success'"]
-        AdminH["管理后台控制器 (AdminHandler)<br/>• 账号/订阅者管理<br/>• 审计日志/重试触发"]
-    end
-
-    subgraph ServiceLayer["领域服务层 (Application Service)"]
-        IngestSvc["接入编排服务 (IngestService)<br/>• 解密与验签<br/>• 全局幂等去重<br/>• 订阅规则匹配 (Filter)"]
-        DeliverySvc["投递调度服务 (DeliveryService)<br/>• 后台抢占式 Worker<br/>• HMAC-SHA256 出站签名<br/>• 阶梯指数退避重试"]
-        AdminSvc["配置管理服务 (Account/Subscriber Service)"]
-    end
-
-    subgraph InfraLayer["基础设施与持久化 (Infrastructure)"]
-        WeChatAdapter["微信协议适配器<br/>• SHA1 验签<br/>• AES-256-CBC 逆填充"]
-        Storage[("嵌入式 SQLite (WAL 模式)<br/>• 单连接写隔离<br/>• 事件与投递状态机持久化")]
-    end
-
-    subgraph Subscribers["下游业务系统 (Webhooks)"]
-        Sub1["菜单业务服务 (只收 CLICK)"]
-        Sub2["用户画像/审计系统 (收全量事件)"]
-        Sub3["外部 CRM / 客服系统 (收 text / scan)"]
-    end
-
-    WC_Server -->|HTTPS 报文| IngestH
-    IngestH --> IngestSvc
-    AdminH --> AdminSvc
-    IngestSvc --> WeChatAdapter
-    IngestSvc --> Storage
-    AdminSvc --> Storage
-    Storage --> DeliverySvc
-    DeliverySvc -->|POST JSON + HMAC 签名| Sub1
-    DeliverySvc -->|POST JSON + HMAC 签名| Sub2
-    DeliverySvc -->|POST JSON + HMAC 签名| Sub3
-```
+<p align="center">
+  <img src="assets/architecture.svg" alt="EventDispatcher System Architecture" width="100%">
+</p>
 
 ---
 
