@@ -540,6 +540,19 @@ function verifyDispatcherSignature($secret, $timestamp, $rawBody, $expectedSig) 
       "traceId": "a1b2c3d4..."
     }
     ```
+
+---
+
+## 7. 内置 Web 管理控制台 (Web UI)
+
+- **访问路径**：`GET /ui` 或 `GET /ui/`（访问根路径 `GET /` 自动 302 重定向至 `/ui`）；
+- **运行机制**：由 Go 标准库 `embed` 将单页面控制台内嵌于单个二进制文件中，免除前端 Node.js / Nginx 构建环境依赖；
+- **控制台功能**：
+  1. 系统运行指标概览（服务号数、活跃订阅数、近期事件数、失败待重放数）；
+  2. 微信服务号可视化配置与微信接入 URL 快速生成；
+  3. 下游订阅方注册、启停切换与过滤规则测试；
+  4. 微信事件实时审计流与格式化 Payload JSON 详情弹窗；
+  5. 出站任务状态流转监控与失败任务一键手动重放重试（Retry）。
   - 异常 (HTTP 503)：存储连接不可用。
     ```json
     {
@@ -549,3 +562,16 @@ function verifyDispatcherSignature($secret, $timestamp, $rawBody, $expectedSig) 
       "traceId": "a1b2c3d4..."
     }
     ```
+
+---
+
+## 7. 内置 Web 管理控制台 (Web UI)
+
+- **访问路径**：`GET /ui` 或 `GET /ui/`（访问根路径 `GET /` 自动 302 重定向至 `/ui`）；
+- **运行机制**：由 Go 标准库 `embed` 将单页面控制台内嵌于单个二进制文件中，免除前端 Node.js / Nginx 构建环境依赖；
+- **控制台功能**：
+  1. 系统运行指标概览（服务号数、活跃订阅数、近期事件数、失败待重放数）；
+  2. 微信服务号可视化配置与微信接入 URL 快速生成；
+  3. 下游订阅方注册、启停切换与过滤规则测试；
+  4. 微信事件实时审计流与格式化 Payload JSON 详情弹窗；
+  5. 出站任务状态流转监控与失败任务一键手动重放重试（Retry）。

@@ -52,10 +52,21 @@ func TestEndToEndPipeline(t *testing.T) {
 	srv := httptest.NewServer(router)
 	defer srv.Close()
 
-	// 1. 测试健康检查
+	// 1. 测试健康检查与 Web UI 页面服务
 	resp, err := http.Get(srv.URL + "/healthz")
 	if err != nil || resp.StatusCode != http.StatusOK {
 		t.Fatalf("health check failed: status=%d, err=%v", resp.StatusCode, err)
+	}
+	resp.Body.Close()
+
+	respUI, err := http.Get(srv.URL + "/ui")
+	if err != nil || respUI.StatusCode != http.StatusOK {
+		t.Fatalf("web UI failed: status=%d, err=%v", respUI.StatusCode, err)
+	}
+	uiBody, _ := io.ReadAll(respUI.Body)
+	respUI.Body.Close()
+	if !bytes.Contains(uiBody, []byte("EventDispatcher 控制台")) {
+		t.Fatalf("web UI HTML unexpected content")
 	}
 
 	// 2. 创建账号

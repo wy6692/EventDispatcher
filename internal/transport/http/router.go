@@ -6,6 +6,7 @@ import (
 
 	"eventdispatcher/internal/transport/http/handler"
 	"eventdispatcher/internal/transport/http/middleware"
+	"eventdispatcher/internal/transport/http/ui"
 )
 
 type RouterConfig struct {
@@ -27,6 +28,14 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	// 1. 公开端点
 	mux.HandleFunc("GET /healthz", cfg.HealthHandler.Health)
 	mux.HandleFunc("/w/{accountKey}", cfg.IngestHandler.ServeHTTP)
+
+	// Web 管理控制台 (内置单页面，无需外部前端环境)
+	uiHandler := ui.Handler()
+	mux.HandleFunc("GET /ui", uiHandler)
+	mux.HandleFunc("GET /ui/", uiHandler)
+	mux.HandleFunc("GET /{$}", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/ui", http.StatusFound)
+	})
 
 	// 2. 受保护的管理端点 (套用 AdminAuth 中间件)
 	adminAuth := middleware.AdminAuth(cfg.AdminToken)

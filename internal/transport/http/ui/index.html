@@ -1,0 +1,1175 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EventDispatcher 控制台</title>
+    <style>
+        :root {
+            --bg: #0b0f17;
+            --card-bg: #131c2e;
+            --card-border: #233149;
+            --header-bg: #0f172a;
+            --primary: #38bdf8;
+            --primary-hover: #0284c7;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --success: #34d399;
+            --warning: #fbbf24;
+            --danger: #f87171;
+            --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans GB", sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--font-sans);
+            font-size: 14px;
+            line-height: 1.5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            background: var(--header-bg);
+            border-bottom: 1px solid var(--card-border);
+            padding: 0 24px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 50;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-title {
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            color: #fff;
+        }
+
+        .brand-badge {
+            background: #0284c7;
+            color: #fff;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-weight: 600;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .token-bar {
+            display: flex;
+            align-items: center;
+            background: #1e293b;
+            border: 1px solid var(--card-border);
+            border-radius: 6px;
+            padding: 4px 10px;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .token-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--danger);
+        }
+
+        .token-dot.active {
+            background: var(--success);
+        }
+
+        .btn {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            color: var(--text);
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+
+        .btn:hover {
+            background: #1e293b;
+            border-color: #3b82f6;
+        }
+
+        .btn-primary {
+            background: #0284c7;
+            border-color: #38bdf8;
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: #0369a1;
+            border-color: #0284c7;
+        }
+
+        .btn-danger {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.3);
+            color: var(--danger);
+        }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.25);
+            border-color: var(--danger);
+        }
+
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+            border-radius: 4px;
+        }
+
+        main {
+            flex: 1;
+            max-width: 1360px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 24px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 24px;
+        }
+
+        .nav-tab {
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: all 0.15s;
+        }
+
+        .nav-tab:hover {
+            color: var(--text);
+        }
+
+        .nav-tab.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .kpi-card {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 18px 20px;
+        }
+
+        .kpi-label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+        }
+
+        .kpi-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #fff;
+            font-family: var(--font-mono);
+        }
+
+        .kpi-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .panel {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .panel-header {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.015);
+        }
+
+        .panel-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th {
+            background: #0f172a;
+            color: var(--text-muted);
+            font-weight: 500;
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--card-border);
+            font-size: 12px;
+        }
+
+        td {
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: #cbd5e1;
+            vertical-align: middle;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: var(--font-mono);
+        }
+
+        .badge-success {
+            background: rgba(52, 211, 153, 0.15);
+            color: #34d399;
+            border: 1px solid rgba(52, 211, 153, 0.3);
+        }
+
+        .badge-pending {
+            background: rgba(251, 191, 36, 0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(251, 191, 36, 0.3);
+        }
+
+        .badge-failed {
+            background: rgba(248, 113, 113, 0.15);
+            color: #f87171;
+            border: 1px solid rgba(248, 113, 113, 0.3);
+        }
+
+        .badge-inflight {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+        }
+
+        .badge-muted {
+            background: #1e293b;
+            color: #94a3b8;
+            border: 1px solid #334155;
+        }
+
+        .code-tag {
+            font-family: var(--font-mono);
+            background: #0f172a;
+            padding: 2px 6px;
+            border-radius: 4px;
+            border: 1px solid #1e293b;
+            font-size: 12px;
+            color: #38bdf8;
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            visibility: hidden;
+            opacity: 0;
+            transition: all 0.2s;
+        }
+
+        .modal-backdrop.open {
+            visibility: visible;
+            opacity: 1;
+        }
+
+        .modal {
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 10px;
+            width: 100%;
+            max-width: 580px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+
+        .modal-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .modal-body {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .modal-footer {
+            padding: 14px 20px;
+            border-top: 1px solid var(--card-border);
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            background: rgba(255, 255, 255, 0.015);
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+        }
+
+        .form-control {
+            background: #0f172a;
+            border: 1px solid var(--card-border);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-family: inherit;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .form-control:focus {
+            border-color: var(--primary);
+        }
+
+        textarea.form-control {
+            font-family: var(--font-mono);
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        pre.code-block {
+            background: #090d16;
+            border: 1px solid var(--card-border);
+            padding: 14px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 12px;
+            overflow-x: auto;
+            color: #93c5fd;
+            line-height: 1.6;
+        }
+
+        #toastContainer {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 200;
+        }
+
+        .toast {
+            background: #1e293b;
+            border: 1px solid var(--card-border);
+            color: #fff;
+            padding: 12px 18px;
+            border-radius: 6px;
+            font-size: 13px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.2s ease-out;
+        }
+
+        .toast-success {
+            border-left: 4px solid var(--success);
+        }
+
+        .toast-error {
+            border-left: 4px solid var(--danger);
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="brand">
+            <span class="brand-title">EventDispatcher</span>
+            <span class="brand-badge">管理控制台</span>
+        </div>
+        <div class="header-actions">
+            <div class="token-bar">
+                <span class="token-dot" id="tokenDot"></span>
+                <span id="tokenLabel">未设置口令</span>
+                <button class="btn btn-sm" onclick="openTokenModal()">配置口令</button>
+            </div>
+            <button class="btn btn-sm" onclick="refreshCurrentTab()">刷新数据</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="nav-tabs">
+            <div class="nav-tab active" data-tab="overview" onclick="switchTab('overview')">系统概览</div>
+            <div class="nav-tab" data-tab="accounts" onclick="switchTab('accounts')">服务号管理</div>
+            <div class="nav-tab" data-tab="subscribers" onclick="switchTab('subscribers')">订阅方与路由</div>
+            <div class="nav-tab" data-tab="events" onclick="switchTab('events')">事件接收日志</div>
+            <div class="nav-tab" data-tab="deliveries" onclick="switchTab('deliveries')">投递调度与重试</div>
+        </div>
+
+        <!-- Tab 1: Overview -->
+        <div id="tab-overview" class="tab-content">
+            <div class="kpi-grid">
+                <div class="kpi-card">
+                    <div class="kpi-label">服务号总数</div>
+                    <div class="kpi-value" id="kpiAccounts">-</div>
+                    <div class="kpi-desc">已注册的微信公众号</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">活跃订阅方</div>
+                    <div class="kpi-value" id="kpiSubscribers">-</div>
+                    <div class="kpi-desc">正在接收事件的下游系统</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">最近事件数</div>
+                    <div class="kpi-value" id="kpiEvents">-</div>
+                    <div class="kpi-desc">网关近期待派发事件</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-label">异常待重试任务</div>
+                    <div class="kpi-value" id="kpiFailedDeliveries" style="color: var(--danger);">-</div>
+                    <div class="kpi-desc">投递失败或待重放</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">微信后台配置助手</span>
+                </div>
+                <div style="padding: 20px;">
+                    <p style="color: var(--text-muted); margin-bottom: 12px; font-size: 13px;">
+                        在微信公众平台后台（设置与开发 -> 基本配置 -> 服务器配置）中填写：
+                    </p>
+                    <div class="form-group" style="margin-bottom: 12px;">
+                        <label class="form-label">服务器 URL 格式：</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input class="form-control" style="flex: 1;" id="helperUrl" readonly
+                                value="https://你的公网域名/w/{accountKey}">
+                            <button class="btn btn-sm"
+                                onclick="copyText(document.getElementById('helperUrl').value)">复制格式</button>
+                        </div>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 12px;">
+                        提示：Token 和 EncodingAESKey 须与在下方【服务号管理】中登记的值完全一致。支持明文模式、兼容模式与 AES 安全模式。
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab 2: Accounts -->
+        <div id="tab-accounts" class="tab-content" style="display: none;">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">服务号配置列表</span>
+                    <button class="btn btn-primary btn-sm" onclick="openCreateAccountModal()">+ 新增服务号</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>服务号名称</th>
+                            <th>路由标识 (AccountKey)</th>
+                            <th>AppID</th>
+                            <th>Token 状态</th>
+                            <th>AES 密钥状态</th>
+                            <th>创建时间</th>
+                            <th style="text-align: right;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accountsTableBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; color: var(--text-muted);">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 3: Subscribers -->
+        <div id="tab-subscribers" class="tab-content" style="display: none;">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">下游订阅者与过滤规则</span>
+                    <button class="btn btn-primary btn-sm" onclick="openCreateSubscriberModal()">+ 新增订阅方</button>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>订阅方名称</th>
+                            <th>所属服务号 ID</th>
+                            <th>回调 Webhook URL</th>
+                            <th>状态</th>
+                            <th>超时 / 最大尝试</th>
+                            <th>路由过滤规则 (Filter)</th>
+                            <th style="text-align: right;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="subscribersTableBody">
+                        <tr>
+                            <td colspan="7" style="text-align: center; color: var(--text-muted);">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 4: Events -->
+        <div id="tab-events" class="tab-content" style="display: none;">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">微信网关事件流水</span>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>事件全局 ID</th>
+                            <th>服务号 ID</th>
+                            <th>MsgType</th>
+                            <th>Event</th>
+                            <th>EventKey</th>
+                            <th>发送用户 (FromUser)</th>
+                            <th>接收时间 (UTC)</th>
+                            <th style="text-align: right;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="eventsTableBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; color: var(--text-muted);">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Tab 5: Deliveries -->
+        <div id="tab-deliveries" class="tab-content" style="display: none;">
+            <div class="panel">
+                <div class="panel-header">
+                    <span class="panel-title">出站投递任务与调度监控</span>
+                    <div style="display: flex; gap: 8px;">
+                        <select class="form-control" style="padding: 4px 8px; font-size: 12px;"
+                            id="deliveryStatusFilter" onchange="loadDeliveries()">
+                            <option value="">全部状态</option>
+                            <option value="failed">仅失败 (failed)</option>
+                            <option value="pending">排队重试中 (pending)</option>
+                            <option value="inflight">投递执行中 (inflight)</option>
+                            <option value="success">投递成功 (success)</option>
+                        </select>
+                    </div>
+                </div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>投递 ID</th>
+                            <th>关联 Event ID</th>
+                            <th>目标订阅者</th>
+                            <th>状态</th>
+                            <th>尝试轮次</th>
+                            <th>最后 HTTP 状态码</th>
+                            <th>下次重试时间 / 错误原因</th>
+                            <th style="text-align: right;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="deliveriesTableBody">
+                        <tr>
+                            <td colspan="8" style="text-align: center; color: var(--text-muted);">加载中...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Token Modal -->
+    <div class="modal-backdrop" id="tokenModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">设置管理鉴权口令 (ADMIN_TOKEN)</span>
+                <button class="btn btn-sm" onclick="closeModal('tokenModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 12px; color: var(--text-muted);">请输入服务启动时配置的环境变量
+                    <code>ADMIN_TOKEN</code>，保存在当前浏览器本地进行接口鉴权。</p>
+                <div class="form-group">
+                    <label class="form-label">管理 Token</label>
+                    <input type="password" class="form-control" id="inputToken" placeholder="输入 ADMIN_TOKEN">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm" onclick="closeModal('tokenModal')">取消</button>
+                <button class="btn btn-primary btn-sm" onclick="saveToken()">保存并连接</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Account Modal -->
+    <div class="modal-backdrop" id="accountModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title" id="accountModalTitle">新增微信服务号</span>
+                <button class="btn btn-sm" onclick="closeModal('accountModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="accFormId">
+                <div class="form-group">
+                    <label class="form-label">服务号名称 (name) *</label>
+                    <input type="text" class="form-control" id="accFormName" placeholder="例如：企业官方主服务号">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">路由标识 (accountKey) *</label>
+                    <input type="text" class="form-control" id="accFormKey" placeholder="用于映射 URL，例如 main">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">微信 AppID *</label>
+                    <input type="text" class="form-control" id="accFormAppId" placeholder="例如 wx1234567890abcdef">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">微信 Token *</label>
+                    <input type="text" class="form-control" id="accFormToken" placeholder="从微信后台复制的 Token">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">EncodingAESKey (可选，安全模式必填)</label>
+                    <input type="text" class="form-control" id="accFormAesKey" placeholder="从微信后台复制的 43 位密钥">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm" onclick="closeModal('accountModal')">取消</button>
+                <button class="btn btn-primary btn-sm" onclick="submitAccountForm()">提交保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Subscriber Modal -->
+    <div class="modal-backdrop" id="subscriberModal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title" id="subModalTitle">新增下游订阅方</span>
+                <button class="btn btn-sm" onclick="closeModal('subscriberModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="subFormId">
+                <div class="form-group">
+                    <label class="form-label">订阅方名称 *</label>
+                    <input type="text" class="form-control" id="subFormName" placeholder="例如：菜单交互程序">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">所属服务号 ID *</label>
+                    <input type="text" class="form-control" id="subFormAccountId" placeholder="例如 acc_xxx">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">接收 Webhook 地址 (callbackUrl) *</label>
+                    <input type="url" class="form-control" id="subFormCallbackUrl"
+                        placeholder="https://api.internal/webhook/wechat">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">HMAC-SHA256 签名密钥 (secret) *</label>
+                    <input type="text" class="form-control" id="subFormSecret" placeholder="与下游共享的验签密钥">
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label class="form-label">单次超时 (毫秒)</label>
+                        <input type="number" class="form-control" id="subFormTimeout" value="3000">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">最大重试轮次</label>
+                        <input type="number" class="form-control" id="subFormMaxAttempts" value="6">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">路由过滤规则 JSON (留空 {} 订阅全量)</label>
+                    <textarea class="form-control" id="subFormFilter"
+                        placeholder='{"msgTypes":["event"],"events":["CLICK"],"eventKeyPrefixes":["MENU_"]}'></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm" onclick="closeModal('subscriberModal')">取消</button>
+                <button class="btn btn-primary btn-sm" onclick="submitSubscriberForm()">提交保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JSON Payload Viewer Modal -->
+    <div class="modal-backdrop" id="payloadModal">
+        <div class="modal" style="max-width: 680px;">
+            <div class="modal-header">
+                <span class="modal-title">事件载荷详情 (Payload JSON)</span>
+                <button class="btn btn-sm" onclick="closeModal('payloadModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <pre class="code-block" id="payloadViewerText"></pre>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-sm"
+                    onclick="copyText(document.getElementById('payloadViewerText').innerText)">复制内容</button>
+                <button class="btn btn-primary btn-sm" onclick="closeModal('payloadModal')">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toastContainer"></div>
+
+    <script>
+        let currentTab = 'overview';
+        const API_BASE = window.location.origin;
+
+        function getToken() { return localStorage.getItem('EVENT_DISPATCHER_ADMIN_TOKEN') || ''; }
+        function setToken(val) { localStorage.setItem('EVENT_DISPATCHER_ADMIN_TOKEN', val.trim()); updateTokenUI(); }
+
+        function updateTokenUI() {
+            const token = getToken();
+            const dot = document.getElementById('tokenDot');
+            const label = document.getElementById('tokenLabel');
+            if (token) {
+                dot.classList.add('active');
+                label.innerText = '口令已配置';
+            } else {
+                dot.classList.remove('active');
+                label.innerText = '未配置口令';
+            }
+        }
+
+        async function apiRequest(endpoint, options = {}) {
+            const token = getToken();
+            const headers = Object.assign({
+                'Authorization': 'Bearer ' + token,
+                'Content-Type': 'application/json'
+            }, options.headers || {});
+
+            try {
+                const resp = await fetch(API_BASE + endpoint, Object.assign({}, options, { headers }));
+                if (resp.status === 204) return { code: 0, message: 'success', data: null };
+                const json = await resp.json();
+                if (resp.status === 401) {
+                    toast('口令未通过或已失效，请重新配置', 'error');
+                    openTokenModal();
+                    return null;
+                }
+                if (!resp.ok || (json.code && json.code !== 0)) {
+                    throw new Error(json.message || '请求失败 (HTTP ' + resp.status + ')');
+                }
+                return json;
+            } catch (err) {
+                toast(err.message, 'error');
+                throw err;
+            }
+        }
+
+        function toast(msg, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const el = document.createElement('div');
+            el.className = 'toast toast-' + type;
+            el.innerText = msg;
+            container.appendChild(el);
+            setTimeout(() => { el.remove(); }, 3500);
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(el => el.style.display = 'none');
+            const targetTab = document.querySelector(`.nav-tab[data-tab="${tab}"]`);
+            if (targetTab) targetTab.classList.add('active');
+            const content = document.getElementById('tab-' + tab);
+            if (content) content.style.display = 'block';
+            refreshCurrentTab();
+        }
+
+        function refreshCurrentTab() {
+            if (currentTab === 'overview') loadOverview();
+            else if (currentTab === 'accounts') loadAccounts();
+            else if (currentTab === 'subscribers') loadSubscribers();
+            else if (currentTab === 'events') loadEvents();
+            else if (currentTab === 'deliveries') loadDeliveries();
+        }
+
+        async function loadOverview() {
+            try {
+                const [accs, subs, evts, dels] = await Promise.all([
+                    apiRequest('/admin/accounts'),
+                    apiRequest('/admin/subscribers'),
+                    apiRequest('/admin/events?limit=10'),
+                    apiRequest('/admin/deliveries?status=failed&limit=100')
+                ]);
+                if (accs && accs.data) document.getElementById('kpiAccounts').innerText = (accs.data.items || []).length;
+                if (subs && subs.data) {
+                    const enabled = (subs.data.items || []).filter(s => s.enabled).length;
+                    document.getElementById('kpiSubscribers').innerText = enabled;
+                }
+                if (evts && evts.data) document.getElementById('kpiEvents').innerText = (evts.data.items || []).length;
+                if (dels && dels.data) document.getElementById('kpiFailedDeliveries').innerText = (dels.data.items || []).length;
+            } catch (e) { }
+        }
+
+        async function loadAccounts() {
+            const tbody = document.getElementById('accountsTableBody');
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">正在加载...</td></tr>';
+            try {
+                const res = await apiRequest('/admin/accounts');
+                const items = (res && res.data && res.data.items) || [];
+                if (items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">暂无服务号记录，请点击右上角新增</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = items.map(a => `
+          <tr>
+            <td><span class="code-tag">${escapeHtml(a.id)}</span></td>
+            <td><strong>${escapeHtml(a.name)}</strong></td>
+            <td><span class="code-tag">${escapeHtml(a.accountKey)}</span></td>
+            <td>${escapeHtml(a.appId)}</td>
+            <td><span class="badge ${a.tokenSet ? 'badge-success' : 'badge-muted'}">${a.tokenSet ? '已设置' : '未设置'}</span></td>
+            <td><span class="badge ${a.encodingAesKeySet ? 'badge-success' : 'badge-muted'}">${a.encodingAesKeySet ? '已设置' : '未配置'}</span></td>
+            <td style="font-size: 12px; color: var(--text-muted);">${escapeHtml(a.createdAt)}</td>
+            <td style="text-align: right;">
+              <button class="btn btn-sm" onclick="copyCallbackUrl('${escapeHtml(a.accountKey)}')">复制接入 URL</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteAccount('${escapeHtml(a.id)}')">删除</button>
+            </td>
+          </tr>
+        `).join('');
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--danger);">加载失败，请检查口令</td></tr>';
+            }
+        }
+
+        async function loadSubscribers() {
+            const tbody = document.getElementById('subscribersTableBody');
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">正在加载...</td></tr>';
+            try {
+                const res = await apiRequest('/admin/subscribers');
+                const items = (res && res.data && res.data.items) || [];
+                if (items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">暂无订阅方记录，请点击右上角新增</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = items.map(s => `
+          <tr>
+            <td><strong>${escapeHtml(s.name)}</strong><br><span style="font-size: 11px; color: var(--text-muted);">${escapeHtml(s.id)}</span></td>
+            <td><span class="code-tag">${escapeHtml(s.accountId)}</span></td>
+            <td style="word-break: break-all;"><a href="${escapeHtml(s.callbackUrl)}" target="_blank" style="color: var(--primary); text-decoration: none;">${escapeHtml(s.callbackUrl)}</a></td>
+            <td><span class="badge ${s.enabled ? 'badge-success' : 'badge-muted'}">${s.enabled ? '已启用' : '已停用'}</span></td>
+            <td style="font-size: 12px;">${s.timeoutMs}ms / ${s.maxAttempts}次</td>
+            <td><pre style="font-size: 11px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; background: #0f172a; padding: 4px; border-radius: 4px;">${escapeHtml(JSON.stringify(s.filter || {}))}</pre></td>
+            <td style="text-align: right;">
+              <button class="btn btn-danger btn-sm" onclick="deleteSubscriber('${escapeHtml(s.id)}')">删除</button>
+            </td>
+          </tr>
+        `).join('');
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--danger);">加载失败</td></tr>';
+            }
+        }
+
+        async function loadEvents() {
+            const tbody = document.getElementById('eventsTableBody');
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">正在加载...</td></tr>';
+            try {
+                const res = await apiRequest('/admin/events?limit=50');
+                const items = (res && res.data && res.data.items) || [];
+                if (items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">暂无事件日志</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = items.map(e => `
+          <tr>
+            <td><span class="code-tag">${escapeHtml(e.id)}</span></td>
+            <td><span class="code-tag">${escapeHtml(e.accountId)}</span></td>
+            <td>${escapeHtml(e.msgType || '-')}</td>
+            <td><span class="badge badge-inflight">${escapeHtml(e.event || '-')}</span></td>
+            <td><span style="font-family: var(--font-mono); font-size: 12px;">${escapeHtml(e.eventKey || '-')}</span></td>
+            <td style="font-size: 12px;">${escapeHtml(e.fromUser || '-')}</td>
+            <td style="font-size: 12px; color: var(--text-muted);">${escapeHtml(e.receivedAt)}</td>
+            <td style="text-align: right;">
+              <button class="btn btn-sm" onclick='viewPayload(${JSON.stringify(e.payload || {})})'>查看 Payload</button>
+            </td>
+          </tr>
+        `).join('');
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--danger);">加载失败</td></tr>';
+            }
+        }
+
+        async function loadDeliveries() {
+            const tbody = document.getElementById('deliveriesTableBody');
+            const statusFilter = document.getElementById('deliveryStatusFilter').value;
+            tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">正在加载...</td></tr>';
+            try {
+                let url = '/admin/deliveries?limit=50';
+                if (statusFilter) url += '&status=' + encodeURIComponent(statusFilter);
+                const res = await apiRequest(url);
+                const items = (res && res.data && res.data.items) || [];
+                if (items.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">暂无投递记录</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = items.map(d => {
+                    let badgeClass = 'badge-muted';
+                    if (d.status === 'success') badgeClass = 'badge-success';
+                    else if (d.status === 'failed') badgeClass = 'badge-failed';
+                    else if (d.status === 'pending') badgeClass = 'badge-pending';
+                    else if (d.status === 'inflight') badgeClass = 'badge-inflight';
+
+                    return `
+            <tr>
+              <td><span class="code-tag">${escapeHtml(d.id)}</span></td>
+              <td><span class="code-tag">${escapeHtml(d.eventId)}</span></td>
+              <td><strong>${escapeHtml(d.subscriberName || d.subscriberId)}</strong></td>
+              <td><span class="badge ${badgeClass}">${escapeHtml(d.status)}</span></td>
+              <td style="font-family: var(--font-mono);">${d.attempt} 次</td>
+              <td>${d.lastStatusCode ? `<span class="badge ${d.lastStatusCode >= 200 && d.lastStatusCode < 300 ? 'badge-success' : 'badge-failed'}">HTTP ${d.lastStatusCode}</span>` : '-'}</td>
+              <td style="font-size: 12px; color: ${d.status === 'failed' ? 'var(--danger)' : 'var(--text-muted)'}; max-width: 260px; word-break: break-all;">
+                ${escapeHtml(d.lastError || d.nextRetryAt || '-')}
+              </td>
+              <td style="text-align: right;">
+                <button class="btn btn-primary btn-sm" onclick="retryDelivery('${escapeHtml(d.id)}')">重试重放</button>
+              </td>
+            </tr>
+          `;
+                }).join('');
+            } catch (e) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--danger);">加载失败</td></tr>';
+            }
+        }
+
+        async function retryDelivery(id) {
+            try {
+                await apiRequest('/admin/deliveries/' + id + '/retry', { method: 'POST' });
+                toast('任务已重置为 pending，调度器将在下一周期重投', 'success');
+                loadDeliveries();
+            } catch (e) { }
+        }
+
+        async function deleteAccount(id) {
+            if (!confirm('确定删除该服务号吗？其关联的订阅者与事件记录将被级联删除。')) return;
+            try {
+                await apiRequest('/admin/accounts/' + id, { method: 'DELETE' });
+                toast('服务号已删除', 'success');
+                loadAccounts();
+            } catch (e) { }
+        }
+
+        async function deleteSubscriber(id) {
+            if (!confirm('确定删除该订阅方吗？')) return;
+            try {
+                await apiRequest('/admin/subscribers/' + id, { method: 'DELETE' });
+                toast('订阅方已删除', 'success');
+                loadSubscribers();
+            } catch (e) { }
+        }
+
+        function openCreateAccountModal() {
+            document.getElementById('accFormId').value = '';
+            document.getElementById('accFormName').value = '';
+            document.getElementById('accFormKey').value = '';
+            document.getElementById('accFormAppId').value = '';
+            document.getElementById('accFormToken').value = '';
+            document.getElementById('accFormAesKey').value = '';
+            document.getElementById('accountModalTitle').innerText = '新增微信服务号';
+            openModal('accountModal');
+        }
+
+        async function submitAccountForm() {
+            const name = document.getElementById('accFormName').value.trim();
+            const accountKey = document.getElementById('accFormKey').value.trim();
+            const appId = document.getElementById('accFormAppId').value.trim();
+            const token = document.getElementById('accFormToken').value.trim();
+            const encodingAesKey = document.getElementById('accFormAesKey').value.trim();
+
+            if (!name || !accountKey || !appId || !token) {
+                toast('请完整填写必填项 (名称, Key, AppID, Token)', 'error');
+                return;
+            }
+            try {
+                await apiRequest('/admin/accounts', {
+                    method: 'POST',
+                    body: JSON.stringify({ name, accountKey, appId, token, encodingAesKey })
+                });
+                toast('服务号创建成功', 'success');
+                closeModal('accountModal');
+                loadAccounts();
+            } catch (e) { }
+        }
+
+        function openCreateSubscriberModal() {
+            document.getElementById('subFormId').value = '';
+            document.getElementById('subFormName').value = '';
+            document.getElementById('subFormAccountId').value = '';
+            document.getElementById('subFormCallbackUrl').value = '';
+            document.getElementById('subFormSecret').value = '';
+            document.getElementById('subFormTimeout').value = '3000';
+            document.getElementById('subFormMaxAttempts').value = '6';
+            document.getElementById('subFormFilter').value = '{}';
+            openModal('subscriberModal');
+        }
+
+        async function submitSubscriberForm() {
+            const name = document.getElementById('subFormName').value.trim();
+            const accountId = document.getElementById('subFormAccountId').value.trim();
+            const callbackUrl = document.getElementById('subFormCallbackUrl').value.trim();
+            const secret = document.getElementById('subFormSecret').value.trim();
+            const timeoutMs = parseInt(document.getElementById('subFormTimeout').value, 10);
+            const maxAttempts = parseInt(document.getElementById('subFormMaxAttempts').value, 10);
+            let filter = {};
+            try {
+                const rawFilter = document.getElementById('subFormFilter').value.trim();
+                if (rawFilter) filter = JSON.parse(rawFilter);
+            } catch (e) {
+                toast('Filter JSON 格式错误', 'error');
+                return;
+            }
+
+            if (!name || !accountId || !callbackUrl || !secret) {
+                toast('请完整填写必填项', 'error');
+                return;
+            }
+            try {
+                await apiRequest('/admin/subscribers', {
+                    method: 'POST',
+                    body: JSON.stringify({ name, accountId, callbackUrl, secret, timeoutMs, maxAttempts, filter })
+                });
+                toast('订阅方创建成功', 'success');
+                closeModal('subscriberModal');
+                loadSubscribers();
+            } catch (e) { }
+        }
+
+        function viewPayload(payload) {
+            document.getElementById('payloadViewerText').innerText = JSON.stringify(payload, null, 2);
+            openModal('payloadModal');
+        }
+
+        function copyCallbackUrl(key) {
+            const url = `${window.location.origin}/w/${key}`;
+            copyText(url);
+        }
+
+        function copyText(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                toast('已复制到剪贴板: ' + text, 'success');
+            }).catch(() => {
+                prompt('请手动复制：', text);
+            });
+        }
+
+        function openTokenModal() {
+            document.getElementById('inputToken').value = getToken();
+            openModal('tokenModal');
+        }
+        function saveToken() {
+            const val = document.getElementById('inputToken').value;
+            setToken(val);
+            closeModal('tokenModal');
+            toast('口令已保存', 'success');
+            refreshCurrentTab();
+        }
+
+        function openModal(id) { document.getElementById(id).classList.add('open'); }
+        function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            updateTokenUI();
+            if (!getToken()) {
+                openTokenModal();
+            } else {
+                refreshCurrentTab();
+            }
+        });
+    </script>
+</body>
+
+</html>
