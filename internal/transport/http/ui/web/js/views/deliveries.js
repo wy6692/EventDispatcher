@@ -1,24 +1,66 @@
 // 视图模块：投递调度、重试与错误详情分析 (Deliveries)
 import { fetchAPI } from '../api.js';
-import { escapeHtml, copyText, pushToast, openModal, closeModal } from '../utils.js';
+import { escapeHtml, copyText, pushToast, openModal, closeModal, renderTableSkeleton, setButtonLoading, renderPagination } from '../utils.js';
 
 let currentViewingDeliveryId = null;
+let deliveryPage = 1;
+let deliveryLimit = 15;
 
-export async function loadDeliveries() {
+export async function populateDeliverySubscriberOptions() {
+  const select = document.getElementById('deliveryFilterSubscriber');
+  if (!select || select.dataset.loaded) return;
+  try {
+    const res = await fetchAPI('/admin/subscribers');
+    const items = (res && res.data && res.data.items) || [];
+    const cur = select.value;
+    select.innerHTML = '<option value="">全部下游订阅方</option>' + items.map(s =>
+      `<option value="${escapeHtml(s.id)}">${escapeHtml(s.name)} (${escapeHtml(s.id)})</option>`
+    ).join('');
+    select.value = cur;
+    select.dataset.loaded = 'true';
+  } catch (e) {}
+}
+
+export async function loadDeliveries(page = deliveryPage, limit = deliveryLimit) {
+  deliveryPage = page;
+  deliveryLimit = limit;
+
+  populateDeliverySubscriberOptions();
+
   const tbody = document.getElementById('deliveriesTable');
-  const filterEl = document.getElementById('deliveryStatusFilter');
   if (!tbody) return;
 
-  const status = filterEl ? filterEl.value : '';
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">正在加载...</td></tr>';
+  const status = document.getElementById('deliveryStatusFilter')?.value.trim() || '';
+  const eventId = document.getElementById('deliveryFilterEventId')?.value.trim() || '';
+  const subscriberId = document.getElementById('deliveryFilterSubscriber')?.value.trim() || '';
+  const deliveryId = document.getElementById('deliveryFilterId')?.value.trim() || '';
+
+  tbody.innerHTML = renderTableSkeleton(8, 4);
 
   try {
-    let url = '/admin/deliveries?limit=50';
+    let url = `/admin/deliveries?page=${deliveryPage}&limit=${deliveryLimit}`;
     if (status) url += '&status=' + encodeURIComponent(status);
+    if (eventId) url += '&eventId=' + encodeURIComponent(eventId);
+    if (subscriberId) url += '&subscriberId=' + encodeURIComponent(subscriberId);
+    if (deliveryId) url += '&deliveryId=' + encodeURIComponent(deliveryId);
+
     const res = await fetchAPI(url);
-    const list = (res && res.data && res.data.items) || [];
+    const data = res && res.data;
+    const list = (data && data.items) || [];
+    const total = (data && typeof data.total === 'number') ? data.total : list.length;
+    const totalPages = (data && data.totalPages) || Math.max(1, Math.ceil(total / deliveryLimit));
+
     if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">暂无投递记录</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">暂无匹配的投递任务记录</td></tr>';
+      renderPagination({
+        containerId: 'deliveriesPagination',
+        page: deliveryPage,
+        limit: deliveryLimit,
+        total: 0,
+        totalPages: 1,
+        onPageChange: (p) => loadDeliveries(p, deliveryLimit),
+        onLimitChange: (l) => loadDeliveries(1, l)
+      });
       return;
     }
     tbody.innerHTML = list.map(d => {
@@ -67,12 +109,28 @@ export async function loadDeliveries() {
         </tr>
       `;
     }).join('');
+
+    renderPagination({
+      containerId: 'deliveriesPagination',
+      page: deliveryPage,
+      limit: deliveryLimit,
+      total,
+      totalPages,
+      onPageChange: (p) => loadDeliveries(p, deliveryLimit),
+      onLimitChange: (l) => loadDeliveries(1, l)
+    });
   } catch (e) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--accent-red); padding: 20px;">加载失败</td></tr>';
   }
 }
 
-export async function retryDelivery(id) {
+export async function retryDelivery(id, triggerBtn = null) {
+  if (triggerBtn) setButtonLoading(triggerBtn, true, '重试中...');
+  const modalRetryBtn = document.getElementById('btnDlvModalRetry');
+  if (currentViewingDeliveryId === id && modalRetryBtn) {
+    setButtonLoading(modalRetryBtn, true, '重试中...');
+  }
+
   try {
     await fetchAPI('/admin/deliveries/' + id + '/retry', { method: 'POST' });
     pushToast('已重置任务，Worker 正在调度重试', 'success');
@@ -81,7 +139,11 @@ export async function retryDelivery(id) {
     if (currentViewingDeliveryId === id) {
       openDeliveryDetail(id);
     }
-  } catch (e) {}
+  } catch (e) {
+  } finally {
+    if (triggerBtn) setButtonLoading(triggerBtn, false);
+    if (modalRetryBtn) setButtonLoading(modalRetryBtn, false);
+  }
 }
 
 export async function openDeliveryDetail(id) {
@@ -214,4 +276,43 @@ export function initDeliveryDetailActions() {
       if (text) copyText(text);
     });
   }
+}
+
+export function initDeliveryFilters() {
+  const btnSearch = document.getElementById('btnSearchDeliveries');
+  if (btnSearch) {
+    btnSearch.addEventListener('click', () => loadDeliveries(1));
+  }
+
+  const btnReset = document.getElementById('btnResetDeliveries');
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      const status = document.getElementById('deliveryStatusFilter');
+      if (status) status.value = '';
+      const eventId = document.getElementById('deliveryFilterEventId');
+      if (eventId) eventId.value = '';
+      const sub = document.getElementById('deliveryFilterSubscriber');
+      if (sub) sub.value = '';
+      const dlvId = document.getElementById('deliveryFilterId');
+      if (dlvId) dlvId.value = '';
+      loadDeliveries(1);
+    });
+  }
+
+  ['deliveryFilterEventId', 'deliveryFilterId'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          loadDeliveries(1);
+        }
+      });
+    }
+  });
+
+  const statusSelect = document.getElementById('deliveryStatusFilter');
+  if (statusSelect) statusSelect.addEventListener('change', () => loadDeliveries(1));
+  const subSelect = document.getElementById('deliveryFilterSubscriber');
+  if (subSelect) subSelect.addEventListener('change', () => loadDeliveries(1));
 }

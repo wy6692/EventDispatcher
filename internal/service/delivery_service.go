@@ -203,16 +203,16 @@ func (s *DeliveryService) Get(ctx context.Context, id string) (*DeliveryDTO, err
 	return toDeliveryDTO(dlv), nil
 }
 
-func (s *DeliveryService) List(ctx context.Context, eventID, status string, limit int) ([]*DeliveryDTO, error) {
-	list, err := s.repo.List(ctx, eventID, status, limit)
+func (s *DeliveryService) List(ctx context.Context, filter domain.DeliveryFilter, page, limit int) ([]*DeliveryDTO, int, error) {
+	list, total, err := s.repo.List(ctx, filter, page, limit)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	res := make([]*DeliveryDTO, 0, len(list))
 	for _, item := range list {
 		res = append(res, toDeliveryDTO(item))
 	}
-	return res, nil
+	return res, total, nil
 }
 
 // SignPayload 计算 HMAC-SHA256 签名。

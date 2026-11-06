@@ -1,11 +1,11 @@
 // 视图模块：微信服务号管理 (Accounts)
 import { fetchAPI, API_BASE } from '../api.js';
-import { escapeHtml, copyText, pushToast, openModal, closeModal, confirmAction } from '../utils.js';
+import { escapeHtml, copyText, pushToast, openModal, closeModal, confirmAction, renderTableSkeleton, setButtonLoading } from '../utils.js';
 
 export async function loadAccounts() {
   const tbody = document.getElementById('accountsTable');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 20px;">正在加载...</td></tr>';
+  tbody.innerHTML = renderTableSkeleton(8, 3);
 
   try {
     const res = await fetchAPI('/admin/accounts');
@@ -142,6 +142,7 @@ export async function submitAccountForm() {
       return;
     }
 
+    setButtonLoading('btnSubmitAccount', true, '正在创建...');
     try {
       await fetchAPI('/admin/accounts', {
         method: 'POST',
@@ -150,7 +151,10 @@ export async function submitAccountForm() {
       pushToast('服务号创建成功', 'success');
       closeModal('accountModal');
       loadAccounts();
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      setButtonLoading('btnSubmitAccount', false);
+    }
   } else {
     // 编辑模式 (PUT)
     if (!name || !accountKey || !appId) {
@@ -162,6 +166,7 @@ export async function submitAccountForm() {
     if (token) payload.token = token;
     if (encodingAesKey) payload.encodingAesKey = encodingAesKey;
 
+    setButtonLoading('btnSubmitAccount', true, '正在保存...');
     try {
       await fetchAPI(`/admin/accounts/${id}`, {
         method: 'PUT',
@@ -170,6 +175,9 @@ export async function submitAccountForm() {
       pushToast('服务号配置已更新', 'success');
       closeModal('accountModal');
       loadAccounts();
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      setButtonLoading('btnSubmitAccount', false);
+    }
   }
 }

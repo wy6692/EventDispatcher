@@ -2,6 +2,7 @@ package persistence
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"eventdispatcher/internal/domain"
@@ -76,25 +77,59 @@ func (r *EventRepository) GetByID(ctx context.Context, id string) (*domain.Event
 	return r.scan(r.db.raw.QueryRowContext(ctx, query, id))
 }
 
-func (r *EventRepository) List(ctx context.Context, accountID string, limit int) ([]*domain.Event, error) {
-	if limit <= 0 || limit > 200 {
-		limit = 50
+func (r *EventRepository) List(ctx context.Context, f domain.EventFilter, page, limit int) ([]*domain.Event, int, error) {
+	if page < 1 {
+		page = 1
 	}
-	var query string
+	if limit <= 0 || limit > 100 {
+		limit = 15
+	}
+	offset := (page - 1) * limit
+
+	var where []string
 	var args []any
-	if accountID != "" {
-		query = `SELECT id, account_id, dedupe_key, msg_type, event, event_key, from_user, to_user, create_time, payload_json, received_at
-			FROM events WHERE account_id = ? ORDER BY received_at DESC LIMIT ?`
-		args = append(args, accountID, limit)
-	} else {
-		query = `SELECT id, account_id, dedupe_key, msg_type, event, event_key, from_user, to_user, create_time, payload_json, received_at
-			FROM events ORDER BY received_at DESC LIMIT ?`
-		args = append(args, limit)
+	if f.AccountID != "" {
+		where = append(where, "account_id = ?")
+		args = append(args, f.AccountID)
+	}
+	if f.MsgType != "" {
+		where = append(where, "msg_type = ?")
+		args = append(args, f.MsgType)
+	}
+	if f.Event != "" {
+		where = append(where, "event = ?")
+		args = append(args, f.Event)
+	}
+	if f.FromUser != "" {
+		where = append(where, "from_user = ?")
+		args = append(args, f.FromUser)
+	}
+	if f.EventID != "" {
+		where = append(where, "id = ?")
+		args = append(args, f.EventID)
 	}
 
-	rows, err := r.db.raw.QueryContext(ctx, query, args...)
+	whereClause := ""
+	if len(where) > 0 {
+		whereClause = " WHERE " + strings.Join(where, " AND ")
+	}
+
+	countQuery := "SELECT COUNT(*) FROM events" + whereClause
+	var total int
+	if err := r.db.raw.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, mapDBError(err)
+	}
+	if total == 0 {
+		return []*domain.Event{}, 0, nil
+	}
+
+	query := "SELECT id, account_id, dedupe_key, msg_type, event, event_key, from_user, to_user, create_time, payload_json, received_at FROM events" +
+		whereClause + " ORDER BY received_at DESC LIMIT ? OFFSET ?"
+	queryArgs := append(args, limit, offset)
+
+	rows, err := r.db.raw.QueryContext(ctx, query, queryArgs...)
 	if err != nil {
-		return nil, mapDBError(err)
+		return nil, 0, mapDBError(err)
 	}
 	defer rows.Close()
 
@@ -102,11 +137,11 @@ func (r *EventRepository) List(ctx context.Context, accountID string, limit int)
 	for rows.Next() {
 		evt, err := r.scan(rows)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		list = append(list, evt)
 	}
-	return list, rows.Err()
+	return list, total, rows.Err()
 }
 
 func (r *EventRepository) scan(s rowScanner) (*domain.Event, error) {

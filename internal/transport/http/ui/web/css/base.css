@@ -60,3 +60,72 @@ input, textarea, select {
   border: 1px solid var(--border-subtle);
   outline: none;
 }
+
+/* ==========================================================================
+   滚动条美化系统 (仿 Element Plus el-scrollbar 交互体验)
+   - 默认隐藏滚动条滑块 (滑块完全透明)
+   - 鼠标悬停容器时平滑淡入 (Fade-in)
+   - 鼠标离开容器后平滑淡出 (Fade-out)
+   - 覆盖所有 X 轴与 Y 轴滚动场景 (页面、表格横滚、弹窗、代码块等)
+   ========================================================================== */
+
+/* Firefox 规范支持 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.25s ease;
+}
+
+*:hover {
+  scrollbar-color: rgba(255, 255, 255, 0.22) transparent;
+}
+
+/* Chromium / WebKit (Chrome, Edge, Safari) */
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 4px;
+  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 鼠标悬停在包含滚动条的容器上时淡入滑块 */
+*:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.22);
+}
+
+/* 鼠标直接在滑块上悬浮或抓取拖拽时高亮 */
+*::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.45) !important;
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background-color: rgba(255, 255, 255, 0.65) !important;
+}
+
+/* 确保各核心滚动区域优先级生效 */
+html, body, .app-sidebar, .content-area, .table-wrap, .modal-body, pre.code-view, textarea {
+  scrollbar-width: thin;
+}
+
+html:hover::-webkit-scrollbar-thumb,
+body:hover::-webkit-scrollbar-thumb,
+.app-sidebar:hover::-webkit-scrollbar-thumb,
+.content-area:hover::-webkit-scrollbar-thumb,
+.table-wrap:hover::-webkit-scrollbar-thumb,
+.modal-body:hover::-webkit-scrollbar-thumb,
+pre.code-view:hover::-webkit-scrollbar-thumb,
+textarea:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.22);
+}

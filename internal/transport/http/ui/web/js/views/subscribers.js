@@ -1,50 +1,125 @@
 // 视图模块：下游订阅方管理与连通性测试 (Subscribers)
 import { fetchAPI } from '../api.js';
-import { escapeHtml, pushToast, openModal, closeModal, confirmAction } from '../utils.js';
+import { escapeHtml, pushToast, openModal, closeModal, confirmAction, renderTableSkeleton, setButtonLoading } from '../utils.js';
+
+let cachedSubscribers = [];
+
+export async function populateSubscriberAccountFilter() {
+  const select = document.getElementById('subscriberFilterAccount');
+  if (!select || select.dataset.loaded) return;
+  try {
+    const res = await fetchAPI('/admin/accounts');
+    const items = (res && res.data && res.data.items) || [];
+    const cur = select.value;
+    select.innerHTML = '<option value="">全部服务号</option>' + items.map(a =>
+      `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)} (${escapeHtml(a.accountKey)})</option>`
+    ).join('');
+    select.value = cur;
+    select.dataset.loaded = 'true';
+  } catch (e) {}
+}
+
+export function renderSubscriberTable(list) {
+  const tbody = document.getElementById('subscribersTable');
+  if (!tbody) return;
+
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 24px;">暂无符合条件的下游订阅方</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map(s => `
+    <tr>
+      <td>
+        <strong style="color: var(--text-primary);">${escapeHtml(s.name)}</strong>
+        <div style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px;">${escapeHtml(s.id)}</div>
+      </td>
+      <td><span class="mono-tag">${escapeHtml(s.accountId)}</span></td>
+      <td style="word-break: break-all;">
+        <a href="${escapeHtml(s.callbackUrl)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue); text-decoration: none;">${escapeHtml(s.callbackUrl)}</a>
+      </td>
+      <td>
+        <span class="status-pill ${s.enabled ? 'status-pill-success' : 'status-pill-muted'}"
+              style="cursor: pointer;"
+              data-action="toggle-subscriber-enabled"
+              data-id="${escapeHtml(s.id)}"
+              data-enabled="${s.enabled ? 'true' : 'false'}"
+              title="点击快速切换启用/停用状态">
+          ${s.enabled ? '已启用' : '已停用'}
+        </span>
+      </td>
+      <td><span style="font-family: var(--font-mono);">${s.timeoutMs}ms / ${s.maxAttempts}次</span></td>
+      <td><pre style="font-size: 10px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; background: #090a0f; padding: 4px; border-radius: 3px; border: 1px solid var(--border-subtle);">${escapeHtml(JSON.stringify(s.filter || {}))}</pre></td>
+      <td style="text-align: right; white-space: nowrap;">
+        <button class="btn btn-sm" data-action="test-subscriber" data-id="${escapeHtml(s.id)}" title="发送测试事件验证下游连通性">测试连接</button>
+        <button class="btn btn-sm" data-action="edit-subscriber" data-id="${escapeHtml(s.id)}">编辑</button>
+        <button class="btn btn-danger-subtle btn-sm" data-action="delete-subscriber" data-id="${escapeHtml(s.id)}">删除</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+export function applySubscriberFilters() {
+  const acc = document.getElementById('subscriberFilterAccount')?.value || '';
+  const status = document.getElementById('subscriberFilterStatus')?.value || '';
+  const keyword = (document.getElementById('subscriberFilterKeyword')?.value || '').toLowerCase().trim();
+
+  let filtered = cachedSubscribers;
+  if (acc) {
+    filtered = filtered.filter(s => s.accountId === acc);
+  }
+  if (status === 'enabled') {
+    filtered = filtered.filter(s => s.enabled);
+  } else if (status === 'disabled') {
+    filtered = filtered.filter(s => !s.enabled);
+  }
+  if (keyword) {
+    filtered = filtered.filter(s =>
+      (s.name && s.name.toLowerCase().includes(keyword)) ||
+      (s.id && s.id.toLowerCase().includes(keyword)) ||
+      (s.callbackUrl && s.callbackUrl.toLowerCase().includes(keyword))
+    );
+  }
+
+  renderSubscriberTable(filtered);
+}
 
 export async function loadSubscribers() {
   const tbody = document.getElementById('subscribersTable');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 20px;">正在加载...</td></tr>';
+  tbody.innerHTML = renderTableSkeleton(7, 3);
+
+  populateSubscriberAccountFilter();
 
   try {
     const res = await fetchAPI('/admin/subscribers');
-    const list = (res && res.data && res.data.items) || [];
-    if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted); padding: 24px;">暂无下游订阅方，请点击右上角新增</td></tr>';
-      return;
-    }
-    tbody.innerHTML = list.map(s => `
-      <tr>
-        <td>
-          <strong style="color: var(--text-primary);">${escapeHtml(s.name)}</strong>
-          <div style="font-size: 10px; color: var(--text-muted); font-family: var(--font-mono); margin-top: 2px;">${escapeHtml(s.id)}</div>
-        </td>
-        <td><span class="mono-tag">${escapeHtml(s.accountId)}</span></td>
-        <td style="word-break: break-all;">
-          <a href="${escapeHtml(s.callbackUrl)}" target="_blank" rel="noopener noreferrer" style="color: var(--accent-blue); text-decoration: none;">${escapeHtml(s.callbackUrl)}</a>
-        </td>
-        <td>
-          <span class="status-pill ${s.enabled ? 'status-pill-success' : 'status-pill-muted'}"
-                style="cursor: pointer;"
-                data-action="toggle-subscriber-enabled"
-                data-id="${escapeHtml(s.id)}"
-                data-enabled="${s.enabled ? 'true' : 'false'}"
-                title="点击快速切换启用/停用状态">
-            ${s.enabled ? '已启用' : '已停用'}
-          </span>
-        </td>
-        <td><span style="font-family: var(--font-mono);">${s.timeoutMs}ms / ${s.maxAttempts}次</span></td>
-        <td><pre style="font-size: 10px; max-width: 260px; overflow: hidden; text-overflow: ellipsis; background: #090a0f; padding: 4px; border-radius: 3px; border: 1px solid var(--border-subtle);">${escapeHtml(JSON.stringify(s.filter || {}))}</pre></td>
-        <td style="text-align: right; white-space: nowrap;">
-          <button class="btn btn-sm" data-action="test-subscriber" data-id="${escapeHtml(s.id)}" title="发送测试事件验证下游连通性">测试连接</button>
-          <button class="btn btn-sm" data-action="edit-subscriber" data-id="${escapeHtml(s.id)}">编辑</button>
-          <button class="btn btn-danger-subtle btn-sm" data-action="delete-subscriber" data-id="${escapeHtml(s.id)}">删除</button>
-        </td>
-      </tr>
-    `).join('');
+    cachedSubscribers = (res && res.data && res.data.items) || [];
+    applySubscriberFilters();
   } catch (e) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--accent-red); padding: 20px;">加载失败</td></tr>';
+  }
+}
+
+export function initSubscriberFilters() {
+  const acc = document.getElementById('subscriberFilterAccount');
+  if (acc) acc.addEventListener('change', applySubscriberFilters);
+
+  const status = document.getElementById('subscriberFilterStatus');
+  if (status) status.addEventListener('change', applySubscriberFilters);
+
+  const kw = document.getElementById('subscriberFilterKeyword');
+  if (kw) {
+    kw.addEventListener('input', applySubscriberFilters);
+  }
+
+  const btnReset = document.getElementById('btnResetSubFilter');
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      if (acc) acc.value = '';
+      if (status) status.value = '';
+      if (kw) kw.value = '';
+      applySubscriberFilters();
+    });
   }
 }
 
@@ -169,6 +244,7 @@ export async function submitSubscriberForm() {
       return;
     }
 
+    setButtonLoading('btnSubmitSubscriber', true, '正在创建...');
     try {
       await fetchAPI('/admin/subscribers', {
         method: 'POST',
@@ -177,7 +253,10 @@ export async function submitSubscriberForm() {
       pushToast('下游订阅方配置成功', 'success');
       closeModal('subscriberModal');
       loadSubscribers();
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      setButtonLoading('btnSubmitSubscriber', false);
+    }
   } else {
     // 编辑模式 (PUT)
     if (!name || !accountId || !callbackUrl) {
@@ -198,6 +277,7 @@ export async function submitSubscriberForm() {
       payload.secret = secret;
     }
 
+    setButtonLoading('btnSubmitSubscriber', true, '正在保存...');
     try {
       await fetchAPI(`/admin/subscribers/${id}`, {
         method: 'PUT',
@@ -206,7 +286,10 @@ export async function submitSubscriberForm() {
       pushToast('订阅方配置已更新', 'success');
       closeModal('subscriberModal');
       loadSubscribers();
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      setButtonLoading('btnSubmitSubscriber', false);
+    }
   }
 }
 
@@ -267,8 +350,8 @@ export async function runSubscriberTest() {
   const eventIdEl = document.getElementById('subTestEventId');
   const bodyPre = document.getElementById('subTestResponseBody');
 
-  btn.disabled = true;
-  loading.style.display = 'inline-flex';
+  setButtonLoading(btn, true, '正在探测...');
+  loading.style.display = 'flex';
   resultArea.style.display = 'none';
 
   try {
@@ -305,7 +388,7 @@ export async function runSubscriberTest() {
     eventIdEl.innerText = '-';
     bodyPre.innerText = e.message || '网络连接或鉴权异常';
   } finally {
-    btn.disabled = false;
+    setButtonLoading(btn, false);
     loading.style.display = 'none';
   }
 }
@@ -334,11 +417,7 @@ export async function testSubscriberFormConfig() {
     return;
   }
 
-  const btn = document.getElementById('btnTestSubForm');
-  if (btn) {
-    btn.disabled = true;
-    btn.innerText = '测试中...';
-  }
+  setButtonLoading('btnTestSubForm', true, '正在探测...');
 
   try {
     const res = await fetchAPI('/admin/subscribers/test', {
@@ -354,9 +433,6 @@ export async function testSubscriberFormConfig() {
   } catch (e) {
     pushToast('测试异常: ' + (e.message || e), 'error');
   } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerText = '测试当前配置';
-    }
+    setButtonLoading('btnTestSubForm', false);
   }
 }

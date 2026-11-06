@@ -3,6 +3,7 @@ package persistence
 import (
 	"context"
 	"database/sql"
+	"strings"
 	"time"
 
 	"eventdispatcher/internal/domain"
@@ -131,28 +132,56 @@ func (r *DeliveryRepository) GetByID(ctx context.Context, id string) (*domain.De
 	return r.scan(r.db.raw.QueryRowContext(ctx, query, id))
 }
 
-func (r *DeliveryRepository) List(ctx context.Context, eventID, status string, limit int) ([]*domain.Delivery, error) {
-	if limit <= 0 || limit > 200 {
-		limit = 50
+func (r *DeliveryRepository) List(ctx context.Context, f domain.DeliveryFilter, page, limit int) ([]*domain.Delivery, int, error) {
+	if page < 1 {
+		page = 1
 	}
+	if limit <= 0 || limit > 100 {
+		limit = 15
+	}
+	offset := (page - 1) * limit
+
+	var where []string
+	var args []any
+	if f.EventID != "" {
+		where = append(where, "d.event_id = ?")
+		args = append(args, f.EventID)
+	}
+	if f.SubscriberID != "" {
+		where = append(where, "d.subscriber_id = ?")
+		args = append(args, f.SubscriberID)
+	}
+	if f.Status != "" {
+		where = append(where, "d.status = ?")
+		args = append(args, f.Status)
+	}
+	if f.DeliveryID != "" {
+		where = append(where, "d.id = ?")
+		args = append(args, f.DeliveryID)
+	}
+
+	whereClause := ""
+	if len(where) > 0 {
+		whereClause = " AND " + strings.Join(where, " AND ")
+	}
+
+	countQuery := "SELECT COUNT(*) FROM deliveries d JOIN subscribers s ON d.subscriber_id = s.id WHERE 1=1" + whereClause
+	var total int
+	if err := r.db.raw.QueryRowContext(ctx, countQuery, args...).Scan(&total); err != nil {
+		return nil, 0, mapDBError(err)
+	}
+	if total == 0 {
+		return []*domain.Delivery{}, 0, nil
+	}
+
 	query := `SELECT d.id, d.event_id, d.subscriber_id, s.name, s.callback_url, d.status, d.attempt, d.next_retry_at, d.last_status_code, d.last_error, d.updated_at
 		FROM deliveries d
-		JOIN subscribers s ON d.subscriber_id = s.id WHERE 1=1`
-	var args []any
-	if eventID != "" {
-		query += " AND d.event_id = ?"
-		args = append(args, eventID)
-	}
-	if status != "" {
-		query += " AND d.status = ?"
-		args = append(args, status)
-	}
-	query += " ORDER BY d.updated_at DESC LIMIT ?"
-	args = append(args, limit)
+		JOIN subscribers s ON d.subscriber_id = s.id WHERE 1=1` + whereClause + " ORDER BY d.updated_at DESC LIMIT ? OFFSET ?"
+	queryArgs := append(args, limit, offset)
 
-	rows, err := r.db.raw.QueryContext(ctx, query, args...)
+	rows, err := r.db.raw.QueryContext(ctx, query, queryArgs...)
 	if err != nil {
-		return nil, mapDBError(err)
+		return nil, 0, mapDBError(err)
 	}
 	defer rows.Close()
 
@@ -160,11 +189,11 @@ func (r *DeliveryRepository) List(ctx context.Context, eventID, status string, l
 	for rows.Next() {
 		item, err := r.scan(rows)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		list = append(list, item)
 	}
-	return list, rows.Err()
+	return list, total, rows.Err()
 }
 
 func (r *DeliveryRepository) scan(s rowScanner) (*domain.Delivery, error) {

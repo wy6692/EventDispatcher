@@ -38,16 +38,16 @@ func (s *EventService) Get(ctx context.Context, id string) (*EventDTO, error) {
 	return toEventDTO(evt), nil
 }
 
-func (s *EventService) List(ctx context.Context, accountID string, limit int) ([]*EventDTO, error) {
-	list, err := s.repo.List(ctx, accountID, limit)
+func (s *EventService) List(ctx context.Context, filter domain.EventFilter, page, limit int) ([]*EventDTO, int, error) {
+	list, total, err := s.repo.List(ctx, filter, page, limit)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	res := make([]*EventDTO, 0, len(list))
 	for _, e := range list {
 		res = append(res, toEventDTO(e))
 	}
-	return res, nil
+	return res, total, nil
 }
 
 func toEventDTO(e *domain.Event) *EventDTO {

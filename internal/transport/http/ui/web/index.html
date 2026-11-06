@@ -8,9 +8,10 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
-  <!-- 本地离线引入 jQuery 与 SweetAlert2 -->
+  <!-- 本地离线引入 jQuery、SweetAlert2 与 ECharts -->
   <script src="js/vendor/jquery.min.js"></script>
   <script src="js/vendor/sweetalert2.all.min.js"></script>
+  <script src="js/vendor/echarts.min.js"></script>
   <!-- 配置 Tailwind 禁用 preflight (避免全局基础元素重置破坏原有暗黑主题样式) -->
   <script>
     window.tailwind = {
@@ -24,6 +25,8 @@
   <script src="js/vendor/tailwindcss.js"></script>
 </head>
 <body>
+  <!-- 顶部全局请求动画指示条 (Level 1: Top Loading Bar) -->
+  <div id="globalProgressBar" class="global-progress-bar"></div>
 
   <!-- 左侧控制台导航 -->
   <aside class="app-sidebar">
@@ -107,7 +110,12 @@
       </div>
 
       <div class="header-actions">
-        <button class="btn btn-sm" id="btnRefresh">刷新数据</button>
+        <button class="btn btn-sm" id="btnRefresh" title="重新拉取最新数据">
+          <svg class="refresh-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
+          <span>刷新数据</span>
+        </button>
         <button class="btn btn-sm" id="btnOpenToken">
           <span id="tokenStatusLabel">配置口令</span>
         </button>
@@ -132,29 +140,316 @@
           <div class="kpi-card">
             <div class="kpi-label">事件吞吐流</div>
             <div class="kpi-value" id="kpiEvents">-</div>
-            <div class="kpi-sub">实时接收微信回调状态</div>
+            <div class="kpi-sub">已接收事件总记录数</div>
           </div>
           <div class="kpi-card">
             <div class="kpi-label">当前积压/失败任务</div>
             <div class="kpi-value" id="kpiFailedDeliveries" style="color: var(--accent-red);">-</div>
-            <div class="kpi-sub">需要关注并支持手动重放</div>
+            <div class="kpi-sub">异常投递支持手动重放</div>
           </div>
         </div>
 
+        <!-- ECharts 动态监控图表 -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <span class="chart-card-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-blue);">
+                  <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+                事件接收吞吐趋势 (近24小时)
+              </span>
+              <span class="chart-card-sub" id="throughputChartMeta">时序分布 (Events/Hr)</span>
+            </div>
+            <div id="chartThroughput" class="chart-container"></div>
+          </div>
+
+          <div class="chart-card">
+            <div class="chart-card-header">
+              <span class="chart-card-title">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-green);">
+                  <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+                  <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+                </svg>
+                下游投递健康度分布
+              </span>
+              <span class="chart-card-sub" id="distributionChartMeta">成功 / 失败 / 重试</span>
+            </div>
+            <div id="chartStatusPie" class="chart-container"></div>
+          </div>
+        </div>
+
+        <!-- 网关全流程接入指引与规范 -->
         <div class="panel">
           <div class="panel-header">
-            <span class="panel-title">网关接入指引</span>
+            <span class="panel-title" style="display: flex; align-items: center; gap: 8px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-blue);">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              网关全流程接入指引与开发规范
+            </span>
+            <span style="font-size: 11px; color: var(--text-muted);">快速上手指南 · 4 步完成从微信回调到多业务分发</span>
           </div>
           <div class="panel-body">
-            <p style="color: var(--text-secondary); margin-bottom: 12px; line-height: 1.6;">
-              在微信公众平台后台配置<strong>服务器地址 (URL)</strong> 时，直接填入本服务的网关地址。支持多服务号独立隔离验证与密钥解密：
-            </p>
-            <div style="display: flex; gap: 8px; max-width: 680px;">
-              <input type="text" class="form-control" id="helperUrl" readonly style="font-family: var(--font-mono); color: var(--accent-blue);">
-              <button class="btn btn-sm" id="btnCopyHelperUrl">复制前缀</button>
+            <!-- 步骤选择器 -->
+            <div class="tutorial-steps">
+              <div class="tutorial-step-card active" data-step="1">
+                <div class="tutorial-step-num">STEP 01</div>
+                <div class="tutorial-step-title">微信后台配置</div>
+                <div class="tutorial-step-desc">填入回调 URL、Token 及 EncodingAESKey</div>
+              </div>
+              <div class="tutorial-step-card" data-step="2">
+                <div class="tutorial-step-num">STEP 02</div>
+                <div class="tutorial-step-title">服务号凭证登记</div>
+                <div class="tutorial-step-desc">在网关控制台录入服务号与解密密钥</div>
+              </div>
+              <div class="tutorial-step-card" data-step="3">
+                <div class="tutorial-step-num">STEP 03</div>
+                <div class="tutorial-step-title">配置下游路由</div>
+                <div class="tutorial-step-desc">配置 Webhook 终端及 JSON 事件过滤规则</div>
+              </div>
+              <div class="tutorial-step-card" data-step="4">
+                <div class="tutorial-step-num">STEP 04</div>
+                <div class="tutorial-step-title">下游验签与响应</div>
+                <div class="tutorial-step-desc">集成 HMAC-SHA256 签名校验与应答契约</div>
+              </div>
             </div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">
-              提示：将 <code>{accountKey}</code> 替换为您在「微信服务号」中登记的英文标识 Key（例如 <code>main_mp</code>）。
+
+            <!-- Pane 1: 微信后台配置 -->
+            <div class="tutorial-pane active" id="tutorial-pane-1">
+              <div class="tutorial-heading">第 1 步：在微信公众平台配置服务器地址 (URL)</div>
+              <div class="tutorial-lead">
+                登录微信公众平台（mp.weixin.qq.com），进入「设置与开发」-「基本配置」-「服务器配置」，启用并填写以下信息：
+              </div>
+              <div class="detail-grid" style="margin-bottom: 14px;">
+                <div class="detail-label">服务器地址 (URL)</div>
+                <div class="detail-value">
+                  <div style="display: flex; gap: 8px; max-width: 680px;">
+                    <input type="text" class="form-control" id="helperUrl" readonly style="font-family: var(--font-mono); color: var(--accent-blue);">
+                    <button class="btn btn-sm" id="btnCopyHelperUrl">复制前缀</button>
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">
+                    其中 <code>{accountKey}</code> 替换为您即将登记的服务号标识（例如 <code>mp_official</code>）。
+                  </div>
+                </div>
+                <div class="detail-label">令牌 (Token)</div>
+                <div class="detail-value">自定义字符串（3-32位），需与网关中录入的 Token 保持完全一致。</div>
+                <div class="detail-label">消息加解密密钥</div>
+                <div class="detail-value">由微信随机生成 43 位 EncodingAESKey，需在网关登记用于解密密文事件。</div>
+                <div class="detail-label">加解密方式</div>
+                <div class="detail-value"><strong style="color: var(--accent-green);">安全模式 (推荐)</strong> 或 兼容模式。网关会自动解析密文并转发明文 JSON。</div>
+              </div>
+            </div>
+
+            <!-- Pane 2: 服务号凭证登记 -->
+            <div class="tutorial-pane" id="tutorial-pane-2">
+              <div class="tutorial-heading">第 2 步：在网关控制台登记微信服务号</div>
+              <div class="tutorial-lead">
+                网关支持多租户/多服务号同时运行。每个服务号根据其标识 Key 进行独立的 URL 路由、URL 验证（<code>echostr</code>）与 AES 密文解密。
+              </div>
+              <ol style="color: var(--text-secondary); font-size: 12px; line-height: 1.8; margin-left: 20px; margin-bottom: 14px;">
+                <li>切换至左侧菜单 <strong>「微信服务号」</strong> 页面；</li>
+                <li>点击右上角 <strong>「新增服务号」</strong> 按钮；</li>
+                <li>填写 <strong>服务号名称</strong>（如：主官方商城服务号）与 <strong>标识 Key</strong>（如：<code>shop_mp</code>）；</li>
+                <li>填入服务号的 <strong>AppID</strong>、<strong>Token</strong> 以及 <strong>EncodingAESKey</strong>；</li>
+                <li>保存后，微信后台服务器 URL 填入 <code>https://your-domain.com/wechat/shop_mp</code> 即可一键通过验证保存。</li>
+              </ol>
+            </div>
+
+            <!-- Pane 3: 下游路由与过滤规则 -->
+            <div class="tutorial-pane" id="tutorial-pane-3">
+              <div class="tutorial-heading">第 3 步：配置下游业务系统订阅方与过滤规则</div>
+              <div class="tutorial-lead">
+                一个服务号的消息可扇出（Fan-out）广播投递给多个下游业务系统（CRM、客服系统、订单系统、数据分析平台等）。各下游通过独立的过滤规则订阅所需事件。
+              </div>
+              <div class="detail-grid" style="margin-bottom: 14px;">
+                <div class="detail-label">目标 Webhook</div>
+                <div class="detail-value">下游系统接收 POST 请求的 HTTP/HTTPS 接口地址。支持超时设置（默认 5s）与最大重试次数（默认 3 次）。</div>
+                <div class="detail-label">事件过滤规则</div>
+                <div class="detail-value">
+                  支持根据微信消息属性精准过滤。留空则订阅该服务号<strong>所有事件</strong>。
+                </div>
+              </div>
+              <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 6px;">过滤规则 JSON 格式示例：</div>
+              <div class="code-snippet-wrap">
+                <button class="btn-code-copy" data-target="codeFilterExample">复制</button>
+                <pre id="codeFilterExample" style="background: #050608; border: 1px solid var(--border-subtle); border-radius: 4px; padding: 12px; font-family: var(--font-mono); font-size: 11px; color: #a5d6ff; overflow-x: auto;">// 示例 1：仅接收关注与取关事件
+{"msg_type": "event", "event": "subscribe"}
+
+// 示例 2：仅接收模板消息发送结果回调
+{"msg_type": "event", "event": "TEMPLATESENDJOBFINISH"}
+
+// 示例 3：仅接收用户发送的文本上行消息
+{"msg_type": "text"}</pre>
+              </div>
+            </div>
+
+            <!-- Pane 4: 下游验签契约与代码示例 -->
+            <div class="tutorial-pane" id="tutorial-pane-4">
+              <div class="tutorial-heading">第 4 步：下游系统集成验签与响应契约</div>
+              <div class="tutorial-lead">
+                网关向订阅方发送 <code>POST</code> 请求，携带统一解析后的 JSON 负载与安全防篡改签名 Header。下游系统校验签名后返回 HTTP <code>200</code> 状态码即可。
+              </div>
+              
+              <div class="detail-grid" style="margin-bottom: 14px;">
+                <div class="detail-label">请求头 (Headers)</div>
+                <div class="detail-value" style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-blue);">
+                  X-Event-Id: &lt;evt_xxx&gt;<br>
+                  X-Event-Type: &lt;event_type&gt;<br>
+                  X-Timestamp: &lt;unix_seconds&gt;<br>
+                  X-Event-Signature: sha256=&lt;hmac_sha256_hex_digest&gt;
+                </div>
+                <div class="detail-label">签名计算规则</div>
+                <div class="detail-value">
+                  <code>HMAC-SHA256(secret_key, raw_http_body)</code>，计算结果十六进制编码。前缀包含 <code>sha256=</code>。
+                </div>
+                <div class="detail-label">响应契约</div>
+                <div class="detail-value">
+                  下游必须在限定时间内返回 HTTP 状态码 <strong>200 或 204</strong>。若返回非 2xx 或发生超时，网关将按照指数退避策略自动重试投递。
+                </div>
+              </div>
+
+              <div class="lang-tabs">
+                <button class="lang-tab-btn active" data-lang="python">Python (FastAPI/Flask)</button>
+                <button class="lang-tab-btn" data-lang="go">Go (net/http)</button>
+                <button class="lang-tab-btn" data-lang="nodejs">Node.js (Express)</button>
+                <button class="lang-tab-btn" data-lang="php">PHP</button>
+              </div>
+
+              <!-- Python Code -->
+              <div class="code-snippet-wrap lang-snippet" id="snippet-python">
+                <button class="btn-code-copy" data-target="codePy">复制代码</button>
+                <pre id="codePy" style="background: #050608; border: 1px solid var(--border-subtle); border-radius: 4px; padding: 12px; font-family: var(--font-mono); font-size: 11px; color: #a5d6ff; overflow-x: auto;">import hmac
+import hashlib
+from fastapi import FastAPI, Request, HTTPException
+
+app = FastAPI()
+WEBHOOK_SECRET = "your_subscriber_secret"
+
+@app.post("/webhook/wechat")
+async def handle_wechat_event(request: Request):
+    signature_header = request.headers.get("X-Event-Signature", "")
+    body_bytes = await request.body()
+
+    # 1. 验证 HMAC-SHA256 签名防伪造
+    expected_sig = "sha256=" + hmac.new(
+        WEBHOOK_SECRET.encode(),
+        body_bytes,
+        hashlib.sha256
+    ).hexdigest()
+
+    if not hmac.compare_digest(signature_header, expected_sig):
+        raise HTTPException(status_code=401, detail="Invalid signature")
+
+    # 2. 解析网关标准化 JSON 结构
+    payload = await request.json()
+    event_id = request.headers.get("X-Event-Id")
+    msg_type = payload.get("msg_type")
+    print(f"收到事件 [{event_id}], 类型: {msg_type}")
+
+    # 3. 业务处理完毕，返回 200 确认投递成功
+    return {"status": "ok"}</pre>
+              </div>
+
+              <!-- Go Code -->
+              <div class="code-snippet-wrap lang-snippet" id="snippet-go" style="display: none;">
+                <button class="btn-code-copy" data-target="codeGo">复制代码</button>
+                <pre id="codeGo" style="background: #050608; border: 1px solid var(--border-subtle); border-radius: 4px; padding: 12px; font-family: var(--font-mono); font-size: 11px; color: #a5d6ff; overflow-x: auto;">package main
+
+import (
+    "crypto/hmac"
+    "crypto/sha256"
+    "encoding/hex"
+    "io"
+    "net/http"
+)
+
+const webhookSecret = "your_subscriber_secret"
+
+func webhookHandler(w http.ResponseWriter, r *http.Request) {
+    body, err := io.ReadAll(r.Body)
+    if err != nil {
+        http.Error(w, "Read error", http.StatusBadRequest)
+        return
+    }
+
+    // 1. 验证 HMAC-SHA256 签名
+    mac := hmac.New(sha256.New, []byte(webhookSecret))
+    mac.Write(body)
+    expectedSig := "sha256=" + hex.EncodeToString(mac.Sum(nil))
+
+    if !hmac.Equal([]byte(r.Header.Get("X-Event-Signature")), []byte(expectedSig)) {
+        http.Error(w, "Unauthorized", http.StatusUnauthorized)
+        return
+    }
+
+    // 2. 业务处理（如写入消息队列或更新数据库）...
+
+    // 3. 响应 200 确认消费完成
+    w.WriteHeader(http.StatusOK)
+    w.Write([]byte(`{"status":"ok"}`))
+}</pre>
+              </div>
+
+              <!-- Node.js Code -->
+              <div class="code-snippet-wrap lang-snippet" id="snippet-nodejs" style="display: none;">
+                <button class="btn-code-copy" data-target="codeNode">复制代码</button>
+                <pre id="codeNode" style="background: #050608; border: 1px solid var(--border-subtle); border-radius: 4px; padding: 12px; font-family: var(--font-mono); font-size: 11px; color: #a5d6ff; overflow-x: auto;">const express = require('express');
+const crypto = require('crypto');
+
+const app = express();
+const WEBHOOK_SECRET = 'your_subscriber_secret';
+
+// 注意：需获取原始 raw body 参与计算签名
+app.post('/webhook/wechat', express.raw({ type: '*/*' }), (req, res) => {
+    const rawBody = req.body;
+    const clientSig = req.headers['x-event-signature'] || '';
+
+    // 1. 计算 HMAC-SHA256 签名
+    const expectedSig = 'sha256=' + crypto
+        .createHmac('sha256', WEBHOOK_SECRET)
+        .update(rawBody)
+        .digest('hex');
+
+    if (clientSig !== expectedSig) {
+        return res.status(401).send('Invalid signature');
+    }
+
+    // 2. 解析 JSON 负载
+    const event = JSON.parse(rawBody.toString('utf8'));
+    console.log('接收到合法事件:', event.event_id, event.msg_type);
+
+    // 3. 响应 200
+    res.status(200).json({ status: 'ok' });
+});</pre>
+              </div>
+
+              <!-- PHP Code -->
+              <div class="code-snippet-wrap lang-snippet" id="snippet-php" style="display: none;">
+                <button class="btn-code-copy" data-target="codePhp">复制代码</button>
+                <pre id="codePhp" style="background: #050608; border: 1px solid var(--border-subtle); border-radius: 4px; padding: 12px; font-family: var(--font-mono); font-size: 11px; color: #a5d6ff; overflow-x: auto;">&lt;?php
+$secret = "your_subscriber_secret";
+$rawBody = file_get_contents("php://input");
+$headerSig = $_SERVER["HTTP_X_EVENT_SIGNATURE"] ?? "";
+
+// 1. 验证签名
+$expectedSig = "sha256=" . hash_hmac("sha256", $rawBody, $secret);
+if (!hash_equals($expectedSig, $headerSig)) {
+    http_response_code(401);
+    exit("Invalid signature");
+}
+
+// 2. 解析 JSON
+$event = json_decode($rawBody, true);
+error_log("接收到事件: " . ($event["event_id"] ?? ""));
+
+// 3. 响应 200
+http_response_code(200);
+header("Content-Type: application/json");
+echo json_encode(["status" => "ok"]);</pre>
+              </div>
             </div>
           </div>
         </div>
@@ -196,6 +491,34 @@
             <span class="panel-title">下游订阅者与过滤规则</span>
             <button class="btn btn-primary btn-sm" id="btnOpenCreateSubscriber">新增订阅方</button>
           </div>
+
+          <!-- 订阅方检索栏 (Filter Bar) -->
+          <div class="table-filter-bar">
+            <div class="filter-inputs">
+              <div class="filter-item">
+                <span class="filter-label">所属服务号</span>
+                <select class="form-control" id="subscriberFilterAccount" style="max-width: 160px;">
+                  <option value="">全部服务号</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">状态</span>
+                <select class="form-control" id="subscriberFilterStatus" style="width: 100px;">
+                  <option value="">全部状态</option>
+                  <option value="enabled">已启用</option>
+                  <option value="disabled">已停用</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">关键词</span>
+                <input type="text" class="form-control" id="subscriberFilterKeyword" placeholder="名称 / 回调 URL..." style="width: 180px;">
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button class="btn btn-sm" id="btnResetSubFilter">重置筛选</button>
+            </div>
+          </div>
+
           <div class="table-wrap">
             <table>
               <thead>
@@ -221,8 +544,50 @@
       <section id="view-events" class="view-pane">
         <div class="panel">
           <div class="panel-header">
-            <span class="panel-title">实时接收日志 (Top 50)</span>
+            <span class="panel-title">事件接收流水与审计日志</span>
           </div>
+
+          <!-- 事件筛选区域 (Filter Bar) -->
+          <div class="table-filter-bar">
+            <div class="filter-inputs">
+              <div class="filter-item">
+                <span class="filter-label">所属服务号</span>
+                <select class="form-control" id="eventFilterAccount" style="max-width: 150px;">
+                  <option value="">全部服务号</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">消息类型</span>
+                <select class="form-control" id="eventFilterMsgType" style="width: 110px;">
+                  <option value="">全部类型</option>
+                  <option value="event">event (事件)</option>
+                  <option value="text">text (文本)</option>
+                  <option value="image">image (图片)</option>
+                  <option value="voice">voice (语音)</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">事件类型</span>
+                <input type="text" class="form-control" id="eventFilterEvent" placeholder="如 subscribe, CLICK..." style="width: 140px;">
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">发送方 OpenID</span>
+                <input type="text" class="form-control" id="eventFilterFromUser" placeholder="微信 OpenID..." style="width: 140px;">
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">事件 ID</span>
+                <input type="text" class="form-control" id="eventFilterEventId" placeholder="evt_..." style="width: 120px;">
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button class="btn btn-primary btn-sm" id="btnSearchEvents">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <span>查询</span>
+              </button>
+              <button class="btn btn-sm" id="btnResetEvents">重置</button>
+            </div>
+          </div>
+
           <div class="table-wrap">
             <table>
               <thead>
@@ -242,6 +607,8 @@
               </tbody>
             </table>
           </div>
+          <!-- 事件接收分页控制栏 -->
+          <div id="eventsPagination" class="pagination-bar"></div>
         </div>
       </section>
 
@@ -249,16 +616,46 @@
       <section id="view-deliveries" class="view-pane">
         <div class="panel">
           <div class="panel-header">
-            <div style="display: flex; align-items: center; gap: 12px;">
-              <span class="panel-title">投递任务队列</span>
-              <select class="form-control" id="deliveryStatusFilter" style="padding: 4px 8px; height: 28px; width: 120px;">
-                <option value="">全部状态</option>
-                <option value="pending">待重试 (pending)</option>
-                <option value="failed">最终失败 (failed)</option>
-                <option value="success">投递成功 (success)</option>
-              </select>
+            <span class="panel-title">投递任务队列与调度历史</span>
+          </div>
+
+          <!-- 投递任务筛选区域 (Filter Bar) -->
+          <div class="table-filter-bar">
+            <div class="filter-inputs">
+              <div class="filter-item">
+                <span class="filter-label">投递状态</span>
+                <select class="form-control" id="deliveryStatusFilter" style="width: 125px;">
+                  <option value="">全部状态</option>
+                  <option value="pending">待重试 (pending)</option>
+                  <option value="failed">最终失败 (failed)</option>
+                  <option value="success">投递成功 (success)</option>
+                  <option value="inflight">投递中 (inflight)</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">关联事件 ID</span>
+                <input type="text" class="form-control" id="deliveryFilterEventId" placeholder="evt_..." style="width: 130px;">
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">目标订阅方</span>
+                <select class="form-control" id="deliveryFilterSubscriber" style="max-width: 160px;">
+                  <option value="">全部下游订阅方</option>
+                </select>
+              </div>
+              <div class="filter-item">
+                <span class="filter-label">任务 ID</span>
+                <input type="text" class="form-control" id="deliveryFilterId" placeholder="dlv_..." style="width: 130px;">
+              </div>
+            </div>
+            <div class="filter-actions">
+              <button class="btn btn-primary btn-sm" id="btnSearchDeliveries">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <span>查询</span>
+              </button>
+              <button class="btn btn-sm" id="btnResetDeliveries">重置</button>
             </div>
           </div>
+
           <div class="table-wrap">
             <table>
               <thead>
@@ -278,6 +675,8 @@
               </tbody>
             </table>
           </div>
+          <!-- 投递队列分页控制栏 -->
+          <div id="deliveriesPagination" class="pagination-bar"></div>
         </div>
       </section>
 
@@ -422,9 +821,18 @@
 
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 14px;">
           <button class="btn btn-primary btn-sm" id="btnExecuteSubTest">发送测试事件</button>
-          <span id="subTestLoading" style="display: none; font-size: 11px; color: var(--accent-blue);">
-            正在建立 HTTP 连接并发送测试事件...
-          </span>
+        </div>
+
+        <!-- 连通性测试中微动画提示 -->
+        <div id="subTestLoading" class="probing-container" style="display: none; margin-bottom: 14px;">
+          <div class="radar-ping">
+            <div class="radar-ring"></div>
+            <div class="radar-dot"></div>
+          </div>
+          <div>
+            <div style="font-weight: 500; color: var(--text-primary); font-size: 12px;">正在执行下游 HTTP POST 探测与握手...</div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">模拟发送测试事件，正在测量网络延迟与下游 HTTP 响应</div>
+          </div>
         </div>
 
         <div id="subTestResultArea" style="display: none;">

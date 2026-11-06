@@ -22,9 +22,18 @@ type Event struct {
 	ReceivedAt  time.Time `json:"receivedAt"`
 }
 
+// EventFilter 定义事件多条件查询过滤器。
+type EventFilter struct {
+	AccountID string `json:"accountId,omitempty"`
+	MsgType   string `json:"msgType,omitempty"`
+	Event     string `json:"event,omitempty"`
+	FromUser  string `json:"fromUser,omitempty"`
+	EventID   string `json:"eventId,omitempty"`
+}
+
 // EventRepository 定义事件持久化契约接口。
 type EventRepository interface {
 	SaveIncoming(ctx context.Context, event *Event, subscriberIDs []string) (created bool, err error)
 	GetByID(ctx context.Context, id string) (*Event, error)
-	List(ctx context.Context, accountID string, limit int) ([]*Event, error)
+	List(ctx context.Context, filter EventFilter, page, limit int) (items []*Event, total int, err error)
 }

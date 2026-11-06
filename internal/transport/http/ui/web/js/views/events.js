@@ -1,18 +1,68 @@
 import { fetchAPI } from '../api.js';
-import { escapeHtml, openModal } from '../utils.js';
+import { escapeHtml, openModal, renderTableSkeleton, renderPagination } from '../utils.js';
 
-export async function loadEvents() {
+let eventPage = 1;
+let eventLimit = 15;
+
+export async function populateEventAccountOptions() {
+  const select = document.getElementById('eventFilterAccount');
+  if (!select || select.dataset.loaded) return;
+  try {
+    const res = await fetchAPI('/admin/accounts');
+    const items = (res && res.data && res.data.items) || [];
+    const cur = select.value;
+    select.innerHTML = '<option value="">全部服务号</option>' + items.map(a =>
+      `<option value="${escapeHtml(a.id)}">${escapeHtml(a.name)} (${escapeHtml(a.accountKey)})</option>`
+    ).join('');
+    select.value = cur;
+    select.dataset.loaded = 'true';
+  } catch (e) {}
+}
+
+export async function loadEvents(page = eventPage, limit = eventLimit) {
+  eventPage = page;
+  eventLimit = limit;
+
+  populateEventAccountOptions();
+
   const tbody = document.getElementById('eventsTable');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted);">正在加载...</td></tr>';
+  tbody.innerHTML = renderTableSkeleton(8, 4);
+
+  const accountId = document.getElementById('eventFilterAccount')?.value.trim() || '';
+  const msgType = document.getElementById('eventFilterMsgType')?.value.trim() || '';
+  const event = document.getElementById('eventFilterEvent')?.value.trim() || '';
+  const fromUser = document.getElementById('eventFilterFromUser')?.value.trim() || '';
+  const eventId = document.getElementById('eventFilterEventId')?.value.trim() || '';
 
   try {
-    const res = await fetchAPI('/admin/events?limit=50');
-    const list = (res && res.data && res.data.items) || [];
+    let url = `/admin/events?page=${eventPage}&limit=${eventLimit}`;
+    if (accountId) url += '&accountId=' + encodeURIComponent(accountId);
+    if (msgType) url += '&msgType=' + encodeURIComponent(msgType);
+    if (event) url += '&event=' + encodeURIComponent(event);
+    if (fromUser) url += '&fromUser=' + encodeURIComponent(fromUser);
+    if (eventId) url += '&eventId=' + encodeURIComponent(eventId);
+
+    const res = await fetchAPI(url);
+    const data = res && res.data;
+    const list = (data && data.items) || [];
+    const total = (data && typeof data.total === 'number') ? data.total : list.length;
+    const totalPages = (data && data.totalPages) || Math.max(1, Math.ceil(total / eventLimit));
+
     if (list.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">暂无微信事件日志</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--text-muted); padding: 24px;">暂无匹配的微信事件日志</td></tr>';
+      renderPagination({
+        containerId: 'eventsPagination',
+        page: eventPage,
+        limit: eventLimit,
+        total: 0,
+        totalPages: 1,
+        onPageChange: (p) => loadEvents(p, eventLimit),
+        onLimitChange: (l) => loadEvents(1, l)
+      });
       return;
     }
+
     tbody.innerHTML = list.map(e => `
       <tr>
         <td><span class="mono-tag">${escapeHtml(e.id)}</span></td>
@@ -31,9 +81,60 @@ export async function loadEvents() {
         </td>
       </tr>
     `).join('');
+
+    renderPagination({
+      containerId: 'eventsPagination',
+      page: eventPage,
+      limit: eventLimit,
+      total,
+      totalPages,
+      onPageChange: (p) => loadEvents(p, eventLimit),
+      onLimitChange: (l) => loadEvents(1, l)
+    });
   } catch (e) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align: center; color: var(--accent-red);">加载失败</td></tr>';
   }
+}
+
+export function initEventFilters() {
+  const btnSearch = document.getElementById('btnSearchEvents');
+  if (btnSearch) {
+    btnSearch.addEventListener('click', () => loadEvents(1));
+  }
+
+  const btnReset = document.getElementById('btnResetEvents');
+  if (btnReset) {
+    btnReset.addEventListener('click', () => {
+      const acc = document.getElementById('eventFilterAccount');
+      if (acc) acc.value = '';
+      const msg = document.getElementById('eventFilterMsgType');
+      if (msg) msg.value = '';
+      const evt = document.getElementById('eventFilterEvent');
+      if (evt) evt.value = '';
+      const from = document.getElementById('eventFilterFromUser');
+      if (from) from.value = '';
+      const eid = document.getElementById('eventFilterEventId');
+      if (eid) eid.value = '';
+      loadEvents(1);
+    });
+  }
+
+  ['eventFilterEvent', 'eventFilterFromUser', 'eventFilterEventId'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          loadEvents(1);
+        }
+      });
+    }
+  });
+
+  const accSelect = document.getElementById('eventFilterAccount');
+  if (accSelect) accSelect.addEventListener('change', () => loadEvents(1));
+  const msgSelect = document.getElementById('eventFilterMsgType');
+  if (msgSelect) msgSelect.addEventListener('change', () => loadEvents(1));
 }
 
 export function viewPayload(payloadObj) {

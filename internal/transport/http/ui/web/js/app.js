@@ -1,11 +1,11 @@
 import { getToken, setToken, updateTokenState } from './state.js';
 import { checkHealth } from './api.js';
-import { copyText, openModal, closeModal, pushToast } from './utils.js';
-import { loadOverview } from './views/overview.js';
+import { copyText, openModal, closeModal, pushToast, setButtonLoading } from './utils.js';
+import { loadOverview, resizeCharts } from './views/overview.js';
 import { loadAccounts, deleteAccount, openCreateAccountModal, openEditAccountModal, submitAccountForm, copyCallbackUrl } from './views/accounts.js';
-import { loadSubscribers, deleteSubscriber, openCreateSubscriberModal, openEditSubscriberModal, submitSubscriberForm, toggleSubscriberEnabled, openTestSubscriberModal, runSubscriberTest, testSubscriberFormConfig } from './views/subscribers.js';
-import { loadEvents, viewPayload } from './views/events.js';
-import { loadDeliveries, retryDelivery, openDeliveryDetail, initDeliveryDetailActions } from './views/deliveries.js';
+import { loadSubscribers, deleteSubscriber, openCreateSubscriberModal, openEditSubscriberModal, submitSubscriberForm, toggleSubscriberEnabled, openTestSubscriberModal, runSubscriberTest, testSubscriberFormConfig, initSubscriberFilters } from './views/subscribers.js';
+import { loadEvents, viewPayload, initEventFilters } from './views/events.js';
+import { loadDeliveries, retryDelivery, openDeliveryDetail, initDeliveryDetailActions, initDeliveryFilters } from './views/deliveries.js';
 
 const VALID_TABS = ['overview', 'accounts', 'subscribers', 'events', 'deliveries'];
 let activeTab = 'overview';
@@ -45,6 +45,9 @@ export function switchTab(tab, updateHash = true) {
 
   const targetPane = document.getElementById('view-' + tab);
   if (targetPane) targetPane.style.display = 'block';
+  if (tab === 'overview') {
+    setTimeout(resizeCharts, 50);
+  }
 
   const breadcrumb = document.getElementById('activeBreadcrumb');
   if (breadcrumb) {
@@ -55,12 +58,25 @@ export function switchTab(tab, updateHash = true) {
 }
 
 export function refreshCurrentTab() {
+  const btn = document.getElementById('btnRefresh');
+  const icon = btn ? btn.querySelector('.refresh-icon') : null;
+  if (icon) icon.classList.add('spinning');
+  if (btn) btn.disabled = true;
+
   checkHealth();
-  if (activeTab === 'overview') loadOverview();
-  else if (activeTab === 'accounts') loadAccounts();
-  else if (activeTab === 'subscribers') loadSubscribers();
-  else if (activeTab === 'events') loadEvents();
-  else if (activeTab === 'deliveries') loadDeliveries();
+  let p;
+  if (activeTab === 'overview') p = loadOverview();
+  else if (activeTab === 'accounts') p = loadAccounts();
+  else if (activeTab === 'subscribers') p = loadSubscribers();
+  else if (activeTab === 'events') p = loadEvents();
+  else if (activeTab === 'deliveries') p = loadDeliveries();
+
+  Promise.resolve(p).finally(() => {
+    setTimeout(() => {
+      if (icon) icon.classList.remove('spinning');
+      if (btn) btn.disabled = false;
+    }, 400);
+  });
 }
 
 function openTokenModal() {
@@ -72,10 +88,14 @@ function openTokenModal() {
 function saveToken() {
   const input = document.getElementById('inputToken');
   if (!input) return;
-  setToken(input.value);
-  closeModal('tokenModal');
-  pushToast('管理员凭据已保存', 'success');
-  refreshCurrentTab();
+  setButtonLoading('btnSaveToken', true, '保存中...');
+  setTimeout(() => {
+    setToken(input.value);
+    setButtonLoading('btnSaveToken', false);
+    closeModal('tokenModal');
+    pushToast('管理员凭据已保存', 'success');
+    refreshCurrentTab();
+  }, 250);
 }
 
 // 全局 DOM 事件绑定与事件代理
@@ -172,11 +192,10 @@ function bindEvents() {
   const btnClosePayloadX = document.getElementById('btnClosePayloadX');
   if (btnClosePayloadX) btnClosePayloadX.addEventListener('click', () => closeModal('payloadModal'));
 
-  // 投递状态筛选
-  const deliveryFilter = document.getElementById('deliveryStatusFilter');
-  if (deliveryFilter) {
-    deliveryFilter.addEventListener('change', loadDeliveries);
-  }
+  // 初始化各视图筛选器
+  initSubscriberFilters();
+  initEventFilters();
+  initDeliveryFilters();
 
   // 动态表格代理操作 (委托至 container 或 document)
   document.addEventListener('click', (e) => {
@@ -215,7 +234,7 @@ function bindEvents() {
         if (id) openDeliveryDetail(id);
         break;
       case 'retry-delivery':
-        if (id) retryDelivery(id);
+        if (id) retryDelivery(id, target);
         break;
       case 'view-payload': {
         const raw = target.getAttribute('data-payload');

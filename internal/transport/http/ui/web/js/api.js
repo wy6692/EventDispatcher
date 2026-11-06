@@ -4,12 +4,41 @@ import { pushToast, openModal } from './utils.js';
 
 export const API_BASE = window.location.origin;
 
+// 顶部进度条状态计数器 (Level 1: Global Progress Bar)
+let activeRequestCount = 0;
+
+export function startGlobalProgress() {
+  activeRequestCount++;
+  const bar = document.getElementById('globalProgressBar');
+  if (bar) {
+    bar.classList.remove('complete');
+    bar.classList.add('active');
+  }
+}
+
+export function finishGlobalProgress() {
+  activeRequestCount = Math.max(0, activeRequestCount - 1);
+  if (activeRequestCount === 0) {
+    const bar = document.getElementById('globalProgressBar');
+    if (bar) {
+      bar.classList.remove('active');
+      bar.classList.add('complete');
+      setTimeout(() => {
+        if (activeRequestCount === 0) {
+          bar.classList.remove('complete');
+        }
+      }, 350);
+    }
+  }
+}
+
 export async function fetchAPI(path, opts = {}) {
   const headers = Object.assign({
     'Authorization': 'Bearer ' + state.token,
     'Content-Type': 'application/json'
   }, opts.headers || {});
 
+  startGlobalProgress();
   try {
     const resp = await fetch(API_BASE + path, Object.assign({}, opts, { headers }));
     if (resp.status === 204) return { code: 0, message: 'success', data: null };
@@ -26,6 +55,8 @@ export async function fetchAPI(path, opts = {}) {
   } catch (err) {
     pushToast(err.message, 'error');
     throw err;
+  } finally {
+    finishGlobalProgress();
   }
 }
 

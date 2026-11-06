@@ -190,17 +190,33 @@
 }
 
 .content-area {
-  padding: 24px;
+  padding: 22px 32px;
   flex: 1;
-  max-width: 1400px;
+  max-width: 100%;
   width: 100%;
 }
 
-/* 视图面板显隐控制 */
+.refresh-icon {
+  transition: transform 0.2s ease;
+}
+
+/* 视图面板显隐与切换过渡 (Level 1: View Tab Transition) */
 .view-pane {
   display: none;
 }
 
 .view-pane.active {
   display: block;
+  animation: fadeInPane 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeInPane {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

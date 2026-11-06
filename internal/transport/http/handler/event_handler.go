@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"eventdispatcher/internal/domain"
 	"eventdispatcher/internal/service"
 	"eventdispatcher/internal/transport/http/response"
 )
@@ -17,14 +18,31 @@ func NewEventHandler(svc *service.EventService) *EventHandler {
 }
 
 func (h *EventHandler) List(w http.ResponseWriter, r *http.Request) {
-	limit := parseLimit(r.URL.Query().Get("limit"), 50)
-	accountID := r.URL.Query().Get("accountId")
-	list, err := h.svc.List(r.Context(), accountID, limit)
+	page := parsePage(r.URL.Query().Get("page"))
+	limit := parseLimit(r.URL.Query().Get("limit"), 15)
+	filter := domain.EventFilter{
+		AccountID: r.URL.Query().Get("accountId"),
+		MsgType:   r.URL.Query().Get("msgType"),
+		Event:     r.URL.Query().Get("event"),
+		FromUser:  r.URL.Query().Get("fromUser"),
+		EventID:   r.URL.Query().Get("eventId"),
+	}
+	list, total, err := h.svc.List(r.Context(), filter, page, limit)
 	if err != nil {
 		response.Error(w, r, err)
 		return
 	}
-	response.Success(w, r, map[string]any{"items": list})
+	totalPages := 1
+	if total > 0 && limit > 0 {
+		totalPages = (total + limit - 1) / limit
+	}
+	response.Success(w, r, map[string]any{
+		"items":      list,
+		"total":      total,
+		"page":       page,
+		"limit":      limit,
+		"totalPages": totalPages,
+	})
 }
 
 func (h *EventHandler) Get(w http.ResponseWriter, r *http.Request) {
@@ -35,6 +53,17 @@ func (h *EventHandler) Get(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	response.Success(w, r, res)
+}
+
+func parsePage(raw string) int {
+	if raw == "" {
+		return 1
+	}
+	n, err := strconv.Atoi(raw)
+	if err != nil || n <= 0 {
+		return 1
+	}
+	return n
 }
 
 func parseLimit(raw string, defaultLimit int) int {

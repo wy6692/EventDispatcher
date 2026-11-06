@@ -41,6 +41,14 @@ type DueJob struct {
 	Payload      []byte
 }
 
+// DeliveryFilter 定义投递任务多条件查询过滤器。
+type DeliveryFilter struct {
+	EventID      string `json:"eventId,omitempty"`
+	SubscriberID string `json:"subscriberId,omitempty"`
+	Status       string `json:"status,omitempty"`
+	DeliveryID   string `json:"deliveryId,omitempty"`
+}
+
 // DeliveryRepository 定义投递状态机持久化契约接口。
 type DeliveryRepository interface {
 	ClaimDue(ctx context.Context, now time.Time, limit int) ([]DueJob, error)
@@ -49,5 +57,5 @@ type DeliveryRepository interface {
 	RequeueUnsent(ctx context.Context, id string, now time.Time) error
 	Reset(ctx context.Context, id string, now time.Time) error
 	GetByID(ctx context.Context, id string) (*Delivery, error)
-	List(ctx context.Context, eventID, status string, limit int) ([]*Delivery, error)
+	List(ctx context.Context, filter DeliveryFilter, page, limit int) (items []*Delivery, total int, err error)
 }

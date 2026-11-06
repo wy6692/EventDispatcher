@@ -448,10 +448,11 @@ function verifyDispatcherSignature($secret, $timestamp, $rawBody, $expectedSig) 
 ### 5.3 事件日志查询 (Events)
 
 #### 查询事件列表
-- **GET** `/admin/events?accountId={accountId}&limit={limit}`
+- **GET** `/admin/events?accountId={accountId}&page={page}&limit={limit}`
 - **Query 参数**：
   - `accountId`（选填）：筛选服务号；
-  - `limit`（选填，默认 50，最大 200）。
+  - `page`（选填，默认 1）：当前页码；
+  - `limit`（选填，默认 15，最大 100）：每页返回数量。
 - **响应 (200 OK)**：
   ```json
   {
@@ -472,7 +473,11 @@ function verifyDispatcherSignature($secret, $timestamp, $rawBody, $expectedSig) 
           "receivedAt": "2026-11-06T06:29:50Z",
           "payload": { ... }
         }
-      ]
+      ],
+      "total": 142,
+      "page": 1,
+      "limit": 15,
+      "totalPages": 10
     },
     "traceId": "a1b2c3d4..."
   }
@@ -486,11 +491,12 @@ function verifyDispatcherSignature($secret, $timestamp, $rawBody, $expectedSig) 
 ### 5.4 投递任务查询与重试 (Deliveries)
 
 #### 查询投递任务列表
-- **GET** `/admin/deliveries?eventId={eventId}&status={status}&limit={limit}`
+- **GET** `/admin/deliveries?eventId={eventId}&status={status}&page={page}&limit={limit}`
 - **Query 参数**：
   - `eventId`（选填）：指定事件 ID；
   - `status`（选填）：可选值包括 `pending`、`inflight`、`success`、`failed`；
-  - `limit`（选填，默认 50，最大 200）。
+  - `page`（选填，默认 1）：当前页码；
+  - `limit`（选填，默认 15，最大 100）：每页返回数量。
 - **响应 (200 OK)**：
   ```json
   {
@@ -510,7 +516,11 @@ function verifyDispatcherSignature($secret, $timestamp, $rawBody, $expectedSig) 
           "lastError": "http status 500: Database Connection Timeout",
           "updatedAt": "2026-11-06T06:40:00Z"
         }
-      ]
+      ],
+      "total": 35,
+      "page": 1,
+      "limit": 15,
+      "totalPages": 3
     },
     "traceId": "a1b2c3d4..."
   }

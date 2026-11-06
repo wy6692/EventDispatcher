@@ -12,16 +12,43 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  transition: background 0.1s, border-color 0.1s;
+  transition: background 0.12s, border-color 0.12s, opacity 0.12s, transform 0.05s;
   user-select: none;
   font-family: inherit;
   line-height: normal;
   white-space: nowrap;
 }
 
-.btn:hover {
+.btn:hover:not(:disabled) {
   background: var(--bg-surface-hover);
   border-color: var(--border-muted);
+}
+
+.btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 按钮加载态 (Button Spinner & Loading State) */
+.btn-loading {
+  pointer-events: none !important;
+  opacity: 0.8 !important;
+}
+
+.btn-spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.75s linear infinite;
+  vertical-align: middle;
+  flex-shrink: 0;
 }
 
 .btn-primary {
@@ -131,21 +158,22 @@ table {
   border-collapse: collapse;
   text-align: left;
   font-size: 12px;
+  min-width: 1260px;
 }
 
 th {
   background: #0f1115;
   color: var(--text-muted);
   font-weight: 500;
-  padding: 8px 14px;
+  padding: 12px 18px;
   border-bottom: 1px solid var(--border-subtle);
-  font-size: 11px;
+  font-size: 11.5px;
   letter-spacing: 0.2px;
   white-space: nowrap;
 }
 
 td {
-  padding: 10px 14px;
+  padding: 12px 18px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-secondary);
   vertical-align: middle;
@@ -246,14 +274,16 @@ textarea.form-control {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: rgba(0, 0, 0, 0.68);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 100;
   visibility: hidden;
   opacity: 0;
-  transition: opacity 0.15s;
+  transition: opacity 0.22s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.22s;
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
 }
 
 .modal-backdrop.open {
@@ -270,7 +300,13 @@ textarea.form-control {
   max-height: 88vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.6);
+  transform: scale(0.96) translateY(-8px);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-backdrop.open .modal-dialog {
+  transform: scale(1) translateY(0);
 }
 
 .modal-header {
@@ -401,4 +437,489 @@ pre.code-view {
   border-radius: 4px;
   padding: 14px;
   margin-top: 14px;
+}
+
+/* ==========================================================================
+   层次化交互动画系统 (Hierarchical Animation System)
+   - 顶部全局请求进度条 (Level 1: Global / Top-level Progress)
+   - 骨架屏波浪动画与表格淡入 (Level 2: Table & Content Skeletons)
+   - 连通性测试雷达脉冲与状态 (Level 3: Probing & Component States)
+   ========================================================================== */
+
+/* 全局顶部请求进度条 */
+.global-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2.5px;
+  width: 0%;
+  background: linear-gradient(90deg, #38bdf8 0%, #818cf8 50%, #c084fc 100%);
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  transition: width 0.3s cubic-bezier(0.1, 0.9, 0.2, 1), opacity 0.25s ease;
+}
+
+.global-progress-bar.active {
+  opacity: 1;
+  width: 72%;
+  animation: barProgressPulse 1.8s ease-in-out infinite alternate;
+}
+
+.global-progress-bar.complete {
+  opacity: 1;
+  width: 100%;
+  transition: width 0.15s ease-out, opacity 0.3s ease 0.15s;
+}
+
+@keyframes barProgressPulse {
+  0% { width: 45%; }
+  50% { width: 75%; }
+  100% { width: 88%; }
+}
+
+/* 通用旋转微动画 */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spinning {
+  animation: spin 0.8s linear infinite !important;
+  display: inline-block;
+}
+
+/* 骨架屏占位与微波动画 (Level 2: Table Skeletons) */
+.skeleton-box {
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.03) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.03) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s infinite cubic-bezier(0.4, 0, 0.6, 1);
+  border-radius: 3px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-row td {
+  padding-top: 12px;
+  padding-bottom: 12px;
+}
+
+/* 表格数据行进入淡入微动画 */
+tbody tr {
+  animation: fadeInRow 0.18s ease-out;
+}
+
+@keyframes fadeInRow {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 连通性测试雷达脉冲微动画 (Level 3: Probing Animation) */
+.probing-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: rgba(56, 189, 248, 0.05);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 50px;
+  margin-top: 4px;
+}
+
+.radar-ping {
+  position: relative;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.radar-dot {
+  width: 8px;
+  height: 8px;
+  background: var(--accent-blue);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--accent-blue);
+}
+
+.radar-ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid var(--accent-blue);
+  animation: radarExpand 1.3s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+
+@keyframes radarExpand {
+  0% {
+    transform: scale(0.3);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+/* ==========================================================================
+   数据表格分页控制栏 (Pagination Component)
+   ========================================================================== */
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-top: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.12);
+  font-size: 12px;
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.pagination-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.pagination-info strong {
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-weight: 600;
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-size-select {
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font-size: 11px;
+  outline: none;
+  cursor: pointer;
+  height: 26px;
+  transition: border-color 0.12s;
+}
+
+.pagination-size-select:focus {
+  border-color: var(--border-accent);
+}
+
+.pagination-pills {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.page-btn {
+  min-width: 26px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 4px;
+  border: 1px solid var(--border-subtle);
+  background: var(--bg-surface-raised);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  user-select: none;
+}
+
+.page-btn:hover:not(:disabled):not(.active) {
+  background: var(--bg-surface-hover);
+  color: var(--text-primary);
+  border-color: var(--border-muted);
+}
+
+.page-btn.active {
+  background: #1a334d;
+  border-color: var(--accent-blue);
+  color: #fff;
+  font-weight: 600;
+}
+
+.page-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.page-ellipsis {
+  padding: 0 4px;
+  color: var(--text-muted);
+  user-select: none;
+  font-size: 11px;
+}
+
+/* ==========================================================================
+   表格多条件筛选区域 (Table Filter Bar)
+   ========================================================================== */
+.table-filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  background: rgba(0, 0, 0, 0.08);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.filter-inputs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.filter-item .form-control {
+  padding: 4px 8px;
+  font-size: 11px;
+  height: 28px;
+  border-radius: 4px;
+  background: var(--bg-surface-raised);
+}
+
+.filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+/* ==========================================================================
+   ECharts 可视化仪表盘 (Charts Dashboard Layout)
+   ========================================================================== */
+.charts-grid {
+  display: grid;
+  grid-template-columns: 2fr 1.15fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 1200px) {
+  .charts-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chart-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.chart-card-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.chart-card-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chart-card-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.chart-container {
+  width: 100%;
+  height: 290px;
+  padding: 6px;
+}
+
+/* ==========================================================================
+   全面的网关接入教程与最佳实践 (Comprehensive Integration Tutorial)
+   ========================================================================== */
+.tutorial-steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+@media (max-width: 1100px) {
+  .tutorial-steps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.tutorial-step-card {
+  background: var(--bg-surface-raised);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  user-select: none;
+}
+
+.tutorial-step-card:hover {
+  border-color: var(--border-muted);
+  background: var(--bg-surface-hover);
+}
+
+.tutorial-step-card.active {
+  border-color: var(--accent-blue);
+  background: rgba(56, 189, 248, 0.06);
+  box-shadow: 0 0 0 1px var(--accent-blue) inset;
+}
+
+.tutorial-step-num {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--accent-blue);
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+}
+
+.tutorial-step-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 3px;
+}
+
+.tutorial-step-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.tutorial-pane {
+  display: none;
+  background: #090b0e;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 18px 20px;
+  animation: fadeInPane 0.2s ease-out;
+}
+
+.tutorial-pane.active {
+  display: block;
+}
+
+.tutorial-heading {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.tutorial-lead {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 14px;
+}
+
+.lang-tabs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.lang-tab-btn {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  background: transparent;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.12s;
+}
+
+.lang-tab-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.lang-tab-btn.active {
+  color: #fff;
+  background: #1a334d;
+  border-color: var(--accent-blue);
+  font-weight: 600;
+}
+
+.code-snippet-wrap {
+  position: relative;
+}
+
+.btn-code-copy {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 5;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: var(--text-secondary);
+  padding: 3px 8px;
+  font-size: 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all 0.1s;
+}
+
+.btn-code-copy:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #fff;
 }
