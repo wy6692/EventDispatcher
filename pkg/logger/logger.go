@@ -5,6 +5,8 @@ import (
 	"io"
 	"log/slog"
 	"os"
+
+	"github.com/mattn/go-isatty"
 )
 
 type ctxKey string
@@ -36,19 +38,39 @@ func (h *Handler) Handle(ctx context.Context, r slog.Record) error {
 	return h.Handler.Handle(ctx, r)
 }
 
-// New 创建企业级结构化日志实例。
+func (h *Handler) WithAttrs(attrs []slog.Attr) slog.Handler {
+	return &Handler{Handler: h.Handler.WithAttrs(attrs)}
+}
+
+func (h *Handler) WithGroup(name string) slog.Handler {
+	return &Handler{Handler: h.Handler.WithGroup(name)}
+}
+
+// New 创建日志实例。文本模式输出对齐的控制台格式；jsonFormat 为 true 时输出 JSON。
 func New(w io.Writer, level slog.Level, jsonFormat bool) *slog.Logger {
 	if w == nil {
 		w = os.Stdout
 	}
-	opts := &slog.HandlerOptions{
-		Level: level,
-	}
 	var base slog.Handler
 	if jsonFormat {
-		base = slog.NewJSONHandler(w, opts)
+		base = slog.NewJSONHandler(w, &slog.HandlerOptions{Level: level})
 	} else {
-		base = slog.NewTextHandler(w, opts)
+		color := wantColor(w)
+		if color {
+			enableANSI(w)
+		}
+		base = newConsoleHandler(w, level, color)
 	}
 	return slog.New(&Handler{Handler: base})
+}
+
+func wantColor(w io.Writer) bool {
+	if os.Getenv("NO_COLOR") != "" || os.Getenv("TERM") == "dumb" {
+		return false
+	}
+	f, ok := w.(*os.File)
+	if !ok {
+		return false
+	}
+	return isatty.IsTerminal(f.Fd()) || isatty.IsCygwinTerminal(f.Fd())
 }
