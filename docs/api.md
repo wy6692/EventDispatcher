@@ -534,6 +534,38 @@ function verifyDispatcherSignature($secret, $timestamp, $rawBody, $expectedSig) 
 - **说明**：将处于 `failed` 或其他状态的任务状态重置为 `pending`，并把重试等待时间拉回当前时间，调度 Worker 会在 500ms 周期内立即尝试重新投递。
 - **响应 (200 OK)**：返回重置后的任务对象。
 
+### 5.5 大盘监控指标与聚合统计 (Stats / Overview)
+
+#### 获取系统概览与图表指标
+- **GET** `/admin/stats/overview`
+- **说明**：专用于控制台首页仪表盘与 ECharts 图表渲染的轻量级聚合接口，后端自动完成 24 小时时序聚合与投递状态分布计算，避免传输冗余实体报文。
+- **响应 (200 OK)**：
+  ```json
+  {
+    "code": 0,
+    "message": "success",
+    "data": {
+      "accountsCount": 2,
+      "activeSubscribers": 5,
+      "eventsTotal": 1420,
+      "failedDeliveries": 3,
+      "hourlyThroughput": [
+        { "hour": "00:00", "count": 12 },
+        { "hour": "01:00", "count": 8 },
+        { "hour": "23:00", "count": 45 }
+      ],
+      "deliveryDistribution": {
+        "success": 2850,
+        "failed": 3,
+        "retrying": 1,
+        "pending": 0,
+        "total": 2854
+      }
+    },
+    "traceId": "d7e8f9a0..."
+  }
+  ```
+
 ---
 
 ## 6. 健康检查接口 (Health Check)

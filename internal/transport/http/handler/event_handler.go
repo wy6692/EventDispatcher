@@ -55,6 +55,15 @@ func (h *EventHandler) Get(w http.ResponseWriter, r *http.Request) {
 	response.Success(w, r, res)
 }
 
+func (h *EventHandler) Overview(w http.ResponseWriter, r *http.Request) {
+	stats, err := h.svc.GetOverviewStats(r.Context())
+	if err != nil {
+		response.Error(w, r, err)
+		return
+	}
+	response.Success(w, r, stats)
+}
+
 func parsePage(raw string) int {
 	if raw == "" {
 		return 1

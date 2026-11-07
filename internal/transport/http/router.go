@@ -25,9 +25,10 @@ type RouterConfig struct {
 func NewRouter(cfg RouterConfig) http.Handler {
 	mux := http.NewServeMux()
 
-	// 1. 公开端点
+	// 1. 公开端点 (支持 /w/{accountKey} 及规范别名 /wechat/{accountKey})
 	mux.HandleFunc("GET /healthz", cfg.HealthHandler.Health)
 	mux.HandleFunc("/w/{accountKey}", cfg.IngestHandler.ServeHTTP)
+	mux.HandleFunc("/wechat/{accountKey}", cfg.IngestHandler.ServeHTTP)
 
 	// Web 管理控制台 (内置多模块静态控制台，无需外部构建工具与 Node.js)
 	uiHandler := ui.Handler()
@@ -56,9 +57,10 @@ func NewRouter(cfg RouterConfig) http.Handler {
 	mux.Handle("PUT /admin/subscribers/{id}", adminAuth(http.HandlerFunc(cfg.SubscriberHandler.Update)))
 	mux.Handle("DELETE /admin/subscribers/{id}", adminAuth(http.HandlerFunc(cfg.SubscriberHandler.Delete)))
 
-	// Events
+	// Events & Stats
 	mux.Handle("GET /admin/events", adminAuth(http.HandlerFunc(cfg.EventHandler.List)))
 	mux.Handle("GET /admin/events/{id}", adminAuth(http.HandlerFunc(cfg.EventHandler.Get)))
+	mux.Handle("GET /admin/stats/overview", adminAuth(http.HandlerFunc(cfg.EventHandler.Overview)))
 
 	// Deliveries
 	mux.Handle("GET /admin/deliveries", adminAuth(http.HandlerFunc(cfg.DeliveryHandler.List)))

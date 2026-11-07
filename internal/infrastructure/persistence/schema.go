@@ -39,6 +39,7 @@ var SchemaDDL = []string{
 		received_at TEXT NOT NULL
 	)`,
 	`CREATE INDEX IF NOT EXISTS idx_events_account_received ON events(account_id, received_at)`,
+	`CREATE INDEX IF NOT EXISTS idx_events_received_at ON events(received_at)`,
 	`CREATE TABLE IF NOT EXISTS deliveries (
 		id TEXT PRIMARY KEY,
 		event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE,

@@ -158,3 +158,110 @@ func (r *EventRepository) scan(s rowScanner) (*domain.Event, error) {
 	e.ReceivedAt = parseTime(rTime)
 	return &e, nil
 }
+
+// GetOverviewStats 聚合全站概览指标与近24小时事件吞吐。
+func (r *EventRepository) GetOverviewStats(ctx context.Context, now time.Time) (*domain.OverviewStats, error) {
+	if now.IsZero() {
+		now = time.Now()
+	}
+
+	stats := &domain.OverviewStats{}
+
+	if err := r.db.raw.QueryRowContext(ctx, `SELECT COUNT(*) FROM accounts`).Scan(&stats.AccountsCount); err != nil {
+		return nil, mapDBError(err)
+	}
+
+	if err := r.db.raw.QueryRowContext(ctx, `SELECT COUNT(*) FROM subscribers WHERE enabled = 1`).Scan(&stats.ActiveSubscribers); err != nil {
+		return nil, mapDBError(err)
+	}
+
+	if err := r.db.raw.QueryRowContext(ctx, `SELECT COUNT(*) FROM events`).Scan(&stats.EventsTotal); err != nil {
+		return nil, mapDBError(err)
+	}
+
+	var dist domain.DeliveryDistribution
+	queryDist := `
+		SELECT 
+			COALESCE(SUM(CASE WHEN status = 'success' THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN status = 'failed' THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN status = 'pending' AND attempt > 0 THEN 1 ELSE 0 END), 0),
+			COALESCE(SUM(CASE WHEN (status = 'pending' AND attempt = 0) OR status = 'inflight' THEN 1 ELSE 0 END), 0),
+			COUNT(*)
+		FROM deliveries`
+	err := r.db.raw.QueryRowContext(ctx, queryDist).Scan(&dist.Success, &dist.Failed, &dist.Retrying, &dist.Pending, &dist.Total)
+	if err != nil {
+		return nil, mapDBError(err)
+	}
+	stats.DeliveryDistribution = dist
+	stats.FailedDeliveries = dist.Failed
+
+	anchorTime := now
+	if stats.EventsTotal > 0 {
+		var latestTimeStr string
+		errLatest := r.db.raw.QueryRowContext(ctx, `SELECT received_at FROM events ORDER BY received_at DESC LIMIT 1`).Scan(&latestTimeStr)
+		if errLatest == nil && latestTimeStr != "" {
+			latestT := parseTime(latestTimeStr)
+			if !latestT.IsZero() && now.Sub(latestT) > 24*time.Hour {
+				anchorTime = latestT.In(now.Location())
+			}
+		}
+	}
+
+	type bucket struct {
+		start time.Time
+		end   time.Time
+		hour  string
+		count int
+	}
+
+	buckets := make([]bucket, 24)
+	for i := 23; i >= 0; i-- {
+		idx := 23 - i
+		t := anchorTime.Add(-time.Duration(i) * time.Hour)
+		bStart := time.Date(t.Year(), t.Month(), t.Day(), t.Hour(), 0, 0, 0, anchorTime.Location())
+		bEnd := bStart.Add(time.Hour)
+		buckets[idx] = bucket{
+			start: bStart,
+			end:   bEnd,
+			hour:  bStart.Format("15:00"),
+			count: 0,
+		}
+	}
+
+	earliestUTC := buckets[0].start.UTC().Format(time.RFC3339)
+	latestUTC := buckets[23].end.UTC().Format(time.RFC3339)
+	rows, err := r.db.raw.QueryContext(ctx, `SELECT received_at FROM events WHERE received_at >= ? AND received_at < ? ORDER BY received_at ASC`, earliestUTC, latestUTC)
+	if err != nil {
+		return nil, mapDBError(err)
+	}
+	defer rows.Close()
+
+	bStart0 := buckets[0].start
+	for rows.Next() {
+		var rTimeStr string
+		if err := rows.Scan(&rTimeStr); err != nil {
+			return nil, mapDBError(err)
+		}
+		evtTime := parseTime(rTimeStr).In(anchorTime.Location())
+		if !evtTime.Before(bStart0) {
+			idx := int(evtTime.Sub(bStart0) / time.Hour)
+			if idx >= 0 && idx < 24 {
+				buckets[idx].count++
+			}
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, mapDBError(err)
+	}
+
+	throughput := make([]domain.HourlyThroughputPoint, 24)
+	for i, b := range buckets {
+		throughput[i] = domain.HourlyThroughputPoint{
+			Hour:  b.hour,
+			Count: b.count,
+		}
+	}
+	stats.HourlyThroughput = throughput
+
+	return stats, nil
+}

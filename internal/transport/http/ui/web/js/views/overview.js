@@ -1,4 +1,4 @@
-// 视图模块：系统概览 (Overview) - 包含数据统计、ECharts 动态图表与接入指引
+// 系统概览视图模块
 import { fetchAPI } from '../api.js';
 import { copyText, pushToast } from '../utils.js';
 
@@ -6,9 +6,7 @@ let throughputChart = null;
 let statusPieChart = null;
 let tutorialInitialized = false;
 
-/**
- * 调整图表尺寸
- */
+// 调整 ECharts 图表渲染尺寸
 export function resizeCharts() {
   if (throughputChart) {
     try { throughputChart.resize(); } catch (e) { /* ignore */ }
@@ -18,9 +16,7 @@ export function resizeCharts() {
   }
 }
 
-/**
- * 初始化图表实例与主题配置
- */
+// 初始化图表实例
 function initCharts() {
   if (typeof echarts === 'undefined') {
     return;
@@ -37,41 +33,13 @@ function initCharts() {
   }
 }
 
-/**
- * 渲染 24 小时事件吞吐时序面积图
- */
-function renderThroughputChart(events) {
+// 渲染 24 小时事件吞吐时序面积图
+function renderThroughputChart(throughputData) {
   if (!throughputChart) return;
 
-  // 生成近 24 小时的时间轴槽位 (每小时 1 个点)
-  const now = new Date();
-  const hours = [];
-  const counts = [];
-  const hourMap = new Map();
-
-  for (let i = 23; i >= 0; i--) {
-    const d = new Date(now.getTime() - i * 3600 * 1000);
-    const key = `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:00`;
-    const label = `${String(d.getHours()).padStart(2, '0')}:00`;
-    hours.push(label);
-    hourMap.set(key, 0);
-  }
-
-  // 统计事件落在各小时槽位中的频次
-  (events || []).forEach(evt => {
-    if (!evt.created_at) return;
-    const d = new Date(evt.created_at);
-    const key = `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:00`;
-    if (hourMap.has(key)) {
-      hourMap.set(key, hourMap.get(key) + 1);
-    }
-  });
-
-  const hourValues = Array.from(hourMap.values());
-  for (let i = 0; i < hourValues.length; i++) {
-    counts.push(hourValues[i]);
-  }
-
+  const list = Array.isArray(throughputData) ? throughputData : [];
+  const hours = list.map(item => item.hour || '');
+  const counts = list.map(item => item.count || 0);
   const totalRecent = counts.reduce((a, b) => a + b, 0);
   const metaEl = document.getElementById('throughputChartMeta');
   if (metaEl) {
@@ -108,7 +76,7 @@ function renderThroughputChart(events) {
       axisLabel: {
         color: '#6e7681',
         fontSize: 10,
-        interval: 3 // 每 4 小时显示一个刻度标签，避免拥挤
+        interval: 3
       }
     },
     yAxis: {
@@ -150,24 +118,15 @@ function renderThroughputChart(events) {
   throughputChart.setOption(option);
 }
 
-/**
- * 渲染投递状态与健康度占比环形图
- */
-function renderDistributionChart(deliveries) {
+// 渲染投递状态与健康度占比环形图
+function renderDistributionChart(distData) {
   if (!statusPieChart) return;
 
-  let success = 0;
-  let failed = 0;
-  let pending = 0;
-  let retrying = 0;
-
-  (deliveries || []).forEach(d => {
-    const s = (d.status || '').toLowerCase();
-    if (s === 'success') success++;
-    else if (s === 'failed') failed++;
-    else if (s === 'retrying') retrying++;
-    else pending++;
-  });
+  const dist = distData || {};
+  const success = dist.success || 0;
+  const failed = dist.failed || 0;
+  const retrying = dist.retrying || 0;
+  const pending = dist.pending || 0;
 
   const total = success + failed + pending + retrying;
   const metaEl = document.getElementById('distributionChartMeta');
@@ -238,14 +197,11 @@ function renderDistributionChart(deliveries) {
   statusPieChart.setOption(option);
 }
 
-/**
- * 绑定网关接入指引步骤切换与多语言代码复制
- */
+// 绑定接入指引交互与代码复制
 function initTutorialInteractions() {
   if (tutorialInitialized) return;
   tutorialInitialized = true;
 
-  // 步骤卡片切换
   document.querySelectorAll('.tutorial-step-card').forEach(card => {
     card.addEventListener('click', () => {
       const step = card.getAttribute('data-step');
@@ -260,7 +216,6 @@ function initTutorialInteractions() {
     });
   });
 
-  // 语言选项卡切换
   document.querySelectorAll('.lang-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const lang = btn.getAttribute('data-lang');
@@ -275,7 +230,6 @@ function initTutorialInteractions() {
     });
   });
 
-  // 代码与配置一键复制
   document.querySelectorAll('.btn-code-copy').forEach(btn => {
     btn.addEventListener('click', () => {
       const targetId = btn.getAttribute('data-target');
@@ -298,7 +252,6 @@ function initTutorialInteractions() {
     });
   });
 
-  // 复制回调前缀
   const btnCopyHelper = document.getElementById('btnCopyHelperUrl');
   if (btnCopyHelper) {
     btnCopyHelper.addEventListener('click', () => {
@@ -310,57 +263,35 @@ function initTutorialInteractions() {
     });
   }
 
-  // 窗口重置自适应图表
   window.addEventListener('resize', () => {
     resizeCharts();
   });
 }
 
-/**
- * 加载系统概览数据
- */
+// 加载系统概览大盘数据
 export async function loadOverview() {
   const elAccs = document.getElementById('kpiAccounts');
   const elSubs = document.getElementById('kpiSubscribers');
   const elEvts = document.getElementById('kpiEvents');
   const elDels = document.getElementById('kpiFailedDeliveries');
 
-  // 初始化指引交互
   initTutorialInteractions();
 
-  // 更新辅助 URL 输入框
   const helperInput = document.getElementById('helperUrl');
   if (helperInput) {
-    helperInput.value = `${window.location.origin}/wechat/{accountKey}`;
+    helperInput.value = `${window.location.origin}/w/{accountKey}`;
   }
 
-  // 初始化图表实例
   initCharts();
 
   try {
-    const [accs, subs, evts, dels] = await Promise.all([
-      fetchAPI('/admin/accounts'),
-      fetchAPI('/admin/subscribers'),
-      fetchAPI('/admin/events?page=1&limit=200'),
-      fetchAPI('/admin/deliveries?page=1&limit=500')
-    ]);
+    const res = await fetchAPI('/admin/stats/overview');
+    const stats = (res && res.data) || {};
 
-    // 更新 KPI 卡片
-    if (accs && accs.data && elAccs) {
-      elAccs.innerText = (accs.data.items || []).length;
-    }
-    if (subs && subs.data && elSubs) {
-      const activeCount = (subs.data.items || []).filter(s => s.enabled).length;
-      elSubs.innerText = activeCount;
-    }
-    if (evts && evts.data && elEvts) {
-      const totalEvents = evts.data.total !== undefined ? evts.data.total : (evts.data.items || []).length;
-      elEvts.innerText = totalEvents;
-    }
-    if (dels && dels.data && elDels) {
-      const failedCount = (dels.data.items || []).filter(d => d.status === 'failed').length;
-      elDels.innerText = failedCount;
-    }
+    if (elAccs) elAccs.innerText = stats.accountsCount ?? 0;
+    if (elSubs) elSubs.innerText = stats.activeSubscribers ?? 0;
+    if (elEvts) elEvts.innerText = stats.eventsTotal ?? 0;
+    if (elDels) elDels.innerText = stats.failedDeliveries ?? 0;
 
     [elAccs, elSubs, elEvts, elDels].forEach(el => {
       if (el) {
@@ -370,16 +301,14 @@ export async function loadOverview() {
       }
     });
 
-    // 渲染动态图表
-    renderThroughputChart((evts && evts.data && evts.data.items) || []);
-    renderDistributionChart((dels && dels.data && dels.data.items) || []);
+    renderThroughputChart(stats.hourlyThroughput || []);
+    renderDistributionChart(stats.deliveryDistribution || {});
 
-    // 延时触发一次 resize 确保在 DOM 完全挂载后尺寸精确
     setTimeout(() => {
       resizeCharts();
     }, 50);
 
   } catch (e) {
-    // 错误已被 api.js 捕获并推至 toast
+    // 接口异常已由 api.js 统一提示
   }
 }

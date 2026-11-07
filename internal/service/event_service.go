@@ -50,6 +50,11 @@ func (s *EventService) List(ctx context.Context, filter domain.EventFilter, page
 	return res, total, nil
 }
 
+// GetOverviewStats 获取系统概览指标与时序监控。
+func (s *EventService) GetOverviewStats(ctx context.Context) (*domain.OverviewStats, error) {
+	return s.repo.GetOverviewStats(ctx, time.Now())
+}
+
 func toEventDTO(e *domain.Event) *EventDTO {
 	if e == nil {
 		return nil

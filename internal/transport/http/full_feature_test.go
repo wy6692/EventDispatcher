@@ -872,4 +872,59 @@ func TestFullFeatureSuite(t *testing.T) {
 			t.Fatalf("expected direct test probe success, got: %+v", testRes.Data)
 		}
 	})
+
+	// 13. 系统大盘监控与时序图表聚合统计 (GET /admin/stats/overview)
+	t.Run("13_OverviewStats", func(t *testing.T) {
+		resp, body := doAdminRequest(http.MethodGet, "/admin/stats/overview", nil, adminToken)
+		if resp.StatusCode != http.StatusOK {
+			t.Fatalf("get stats overview failed: %s", string(body))
+		}
+
+		var statsRes struct {
+			Code int `json:"code"`
+			Data struct {
+				AccountsCount        int `json:"accountsCount"`
+				ActiveSubscribers    int `json:"activeSubscribers"`
+				EventsTotal          int `json:"eventsTotal"`
+				FailedDeliveries     int `json:"failedDeliveries"`
+				HourlyThroughput     []struct {
+					Hour  string `json:"hour"`
+					Count int    `json:"count"`
+				} `json:"hourlyThroughput"`
+				DeliveryDistribution struct {
+					Success  int `json:"success"`
+					Failed   int `json:"failed"`
+					Retrying int `json:"retrying"`
+					Pending  int `json:"pending"`
+					Total    int `json:"total"`
+				} `json:"deliveryDistribution"`
+			} `json:"data"`
+		}
+		if err := json.Unmarshal(body, &statsRes); err != nil {
+			t.Fatalf("unmarshal stats response failed: %v", err)
+		}
+
+		if statsRes.Data.AccountsCount < 1 {
+			t.Errorf("expected accountsCount >= 1, got %d", statsRes.Data.AccountsCount)
+		}
+		if statsRes.Data.EventsTotal < 1 {
+			t.Errorf("expected eventsTotal >= 1, got %d", statsRes.Data.EventsTotal)
+		}
+		if len(statsRes.Data.HourlyThroughput) != 24 {
+			t.Errorf("expected 24 hourly throughput points, got %d", len(statsRes.Data.HourlyThroughput))
+		}
+
+		// 检查 24 小时吞吐点内是否有记录统计
+		var throughputSum int
+		for _, pt := range statsRes.Data.HourlyThroughput {
+			throughputSum += pt.Count
+		}
+		if throughputSum < 1 {
+			t.Errorf("expected hourly throughput sum >= 1, got %d", throughputSum)
+		}
+
+		if statsRes.Data.DeliveryDistribution.Total < 1 {
+			t.Errorf("expected total deliveries >= 1, got %d", statsRes.Data.DeliveryDistribution.Total)
+		}
+	})
 }

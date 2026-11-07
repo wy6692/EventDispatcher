@@ -31,9 +31,35 @@ type EventFilter struct {
 	EventID   string `json:"eventId,omitempty"`
 }
 
+// HourlyThroughputPoint 表示按小时汇总的事件吞吐监控数据点。
+type HourlyThroughputPoint struct {
+	Hour  string `json:"hour"`
+	Count int    `json:"count"`
+}
+
+// DeliveryDistribution 表示下游投递健康度分布统计。
+type DeliveryDistribution struct {
+	Success  int `json:"success"`
+	Failed   int `json:"failed"`
+	Retrying int `json:"retrying"`
+	Pending  int `json:"pending"`
+	Total    int `json:"total"`
+}
+
+// OverviewStats 聚合系统概览所需的大盘监控指标。
+type OverviewStats struct {
+	AccountsCount        int                     `json:"accountsCount"`
+	ActiveSubscribers    int                     `json:"activeSubscribers"`
+	EventsTotal          int                     `json:"eventsTotal"`
+	FailedDeliveries     int                     `json:"failedDeliveries"`
+	HourlyThroughput     []HourlyThroughputPoint `json:"hourlyThroughput"`
+	DeliveryDistribution DeliveryDistribution   `json:"deliveryDistribution"`
+}
+
 // EventRepository 定义事件持久化契约接口。
 type EventRepository interface {
 	SaveIncoming(ctx context.Context, event *Event, subscriberIDs []string) (created bool, err error)
 	GetByID(ctx context.Context, id string) (*Event, error)
 	List(ctx context.Context, filter EventFilter, page, limit int) (items []*Event, total int, err error)
+	GetOverviewStats(ctx context.Context, now time.Time) (*OverviewStats, error)
 }
